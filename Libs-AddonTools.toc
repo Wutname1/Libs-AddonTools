@@ -25,6 +25,12 @@ Core\Framework.lua
 # Localization
 Locales\enUS.lua
 
+# Shared UI System
+Systems\UI\Main.lua
+Systems\UI\UIComponents.lua
+Systems\UI\BaseWindow.lua
+Systems\UI\NavigationTree.lua
+
 # Systems
 Systems\Logger\Logger.lua
 

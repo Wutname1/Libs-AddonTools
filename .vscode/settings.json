@@ -49,5 +49,6 @@
     "GameTooltip_AddNormalLine"
   ],
   "Lua.diagnostics.disable": ["assign-type-mismatch"],
-  "stylua.targetReleaseVersion": "latest"
+  "stylua.targetReleaseVersion": "latest",
+  "Lua.type.weakUnionCheck": true
 }
