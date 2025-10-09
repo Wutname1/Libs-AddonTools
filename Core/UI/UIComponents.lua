@@ -70,12 +70,7 @@ function LibAT.UI.SetupFilterButton(button, info)
 	local btnHeight = 20
 
 	if info.type == 'category' then
-		if info.isToken then
-			button:SetNormalFontObject(GameFontNormalSmallBattleNetBlueLeft)
-		else
-			button:SetNormalFontObject(GameFontNormalSmall)
-		end
-
+		button:SetNormalFontObject(GameFontNormalSmall)
 		button.NormalTexture:SetAtlas('auctionhouse-nav-button', false)
 		button.NormalTexture:SetSize(btnWidth + 6, btnHeight + 11)
 		button.NormalTexture:ClearAllPoints()
@@ -90,6 +85,7 @@ function LibAT.UI.SetupFilterButton(button, info)
 		button.HighlightTexture:SetPoint('LEFT')
 		button.HighlightTexture:SetBlendMode('BLEND')
 		button:SetText(info.name)
+		normalText:ClearAllPoints()
 		normalText:SetPoint('LEFT', button, 'LEFT', 8, 0)
 		normalTexture:SetAlpha(1.0)
 		line:Hide()
@@ -109,6 +105,7 @@ function LibAT.UI.SetupFilterButton(button, info)
 		button.HighlightTexture:SetPoint('TOPLEFT', 10, 0)
 		button.HighlightTexture:SetBlendMode('BLEND')
 		button:SetText(info.name or '')
+		normalText:ClearAllPoints()
 		normalText:SetPoint('LEFT', button, 'LEFT', 18, 0)
 		normalTexture:SetAlpha(1.0)
 		line:Hide()

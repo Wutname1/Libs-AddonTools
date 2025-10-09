@@ -23,6 +23,28 @@ LibAT.UI = {}
 LibAT.Components = {}
 LibAT.Systems = {}
 
+---Safely reload the UI with instance+combat check
+---@param showMessage? boolean Whether to show error message (default: true)
+---@return boolean success Whether reload was initiated or would be allowed
+function LibAT:SafeReloadUI(showMessage)
+	if showMessage == nil then
+		showMessage = true
+	end
+
+	local inInstance = IsInInstance()
+	local inCombat = InCombatLockdown()
+
+	if inInstance and inCombat then
+		if showMessage then
+			self:Print('|cffff0000Cannot reload UI while in combat in an instance|r')
+		end
+		return false
+	end
+
+	ReloadUI()
+	return true
+end
+
 ---Options Manager - Simple interface for managing AceConfig options
 LibAT.Options = {
 	optionsTable = {},
@@ -187,5 +209,5 @@ end
 
 SLASH_RL1 = '/rl'
 SlashCmdList['RL'] = function()
-	ReloadUI()
+	LibAT:SafeReloadUI()
 end

@@ -80,6 +80,7 @@ local function updateDisplay(forceRefresh)
 		window.Buttons.Prev:SetEnabled(currentErrorIndex > 1)
 		window.Buttons.CopyAll:SetEnabled(#currentErrorList > 1)
 		window.Buttons.Ignore:SetEnabled(true)
+		window.Buttons.ClearAll:SetEnabled(true)
 	else
 		-- No errors to display - clear everything
 		countLabel:SetText('0/0')
@@ -90,6 +91,7 @@ local function updateDisplay(forceRefresh)
 		window.Buttons.Prev:SetEnabled(false)
 		window.Buttons.CopyAll:SetEnabled(false)
 		window.Buttons.Ignore:SetEnabled(false)
+		window.Buttons.ClearAll:SetEnabled(false)
 	end
 end
 

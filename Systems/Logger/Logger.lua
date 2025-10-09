@@ -18,11 +18,16 @@ local UI = LibAT.UI
 ---| "error"    # Error conditions
 ---| "critical" # Critical system failures
 
----Logger function returned by RegisterAddon
----@alias SimpleLogger fun(message: string, level?: LogLevel): nil
-
----Logger table returned by RegisterAddonCategory
----@alias ComplexLoggers table<string, SimpleLogger>
+---Logger object returned by RegisterAddon
+---@class LoggerObject
+---@field log fun(message: string, level?: LogLevel): nil
+---@field debug fun(message: string): nil
+---@field info fun(message: string): nil
+---@field warning fun(message: string): nil
+---@field error fun(message: string): nil
+---@field critical fun(message: string): nil
+---@field RegisterCategory fun(self: LoggerObject, categoryName: string): LoggerObject
+---@field Categories table<string, LoggerObject>
 
 ---Internal Logger Handler (LibAT.Handlers.Logger)
 ---@class LibAT.LoggerInternal : LibAT.Module
@@ -30,8 +35,7 @@ local UI = LibAT.UI
 
 ---External Logger API (LibAT.Logger) - for third-party addons
 ---@class LibAT.Logger
----@field RegisterAddon fun(addonName: string): SimpleLogger
----@field RegisterAddonCategory fun(addonName: string, subcategories: string[]): ComplexLoggers
+---@field RegisterAddon fun(addonName: string, categories?: string[]): LoggerObject
 
 ----------------------------------------------------------------------------------------------------
 local LogWindow = nil ---@type table|Frame
@@ -75,9 +79,9 @@ end
 -- Function to parse and categorize log sources using hierarchical system
 -- Returns: category, subCategory, subSubCategory, sourceType
 local function ParseLogSource(sourceName)
-	-- Check if this is a registered simple addon (category level only)
+	-- Check if this is a registered simple addon (gets its own top-level category with Core subcategory)
 	if RegisteredAddons[sourceName] then
-		return 'External Addons', sourceName, nil, 'subCategory'
+		return sourceName, 'Core', nil, 'subCategory'
 	end
 
 	-- Check if this is part of a registered addon category hierarchy
@@ -163,7 +167,8 @@ function CreateLogSourceCategories()
 				subCategories = {},
 				expanded = AddonCategories[category] and AddonCategories[category].expanded or false,
 				button = nil,
-				isAddonCategory = AddonCategories[category] ~= nil
+				-- Mark as addon category if it's in AddonCategories OR RegisteredAddons
+				isAddonCategory = (AddonCategories[category] ~= nil) or (RegisteredAddons[category] ~= nil)
 			}
 		end
 
@@ -278,73 +283,129 @@ function CreateCategoryTree(sortedCategories)
 			end
 		end
 
-		-- Create category button using the proper template
-		local categoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, 'LibAT_CategoryButton_' .. categoryName)
-		categoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
+		-- Check if this category only has a single "Core" subcategory (make it directly selectable)
+		local isCoreOnly = (subCategoryCount == 1 and categoryData.sortedSubCategories and #categoryData.sortedSubCategories == 1 and categoryData.sortedSubCategories[1] == 'Core')
 
-		-- Set up category button using Blizzard's helper function
-		local categoryInfo = {
-			type = 'category',
-			name = categoryName .. ' (' .. subCategoryCount .. ')',
-			categoryIndex = categoryName,
-			isToken = categoryData.isAddonCategory, -- Use isToken for external addons (matches Blizzard's pattern)
-			selected = false
-		}
-		UI.SetupFilterButton(categoryButton, categoryInfo)
+		if isCoreOnly then
+			-- Create a directly selectable button (top-level category style, but selectable)
+			local coreSubCategory = categoryData.subCategories['Core']
+			local categoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, nil)
+			categoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
-		-- Add expand/collapse indicator
-		categoryButton.indicator = categoryButton:CreateTexture(nil, 'OVERLAY')
-		categoryButton.indicator:SetSize(15, 15)
-		categoryButton.indicator:SetPoint('LEFT', categoryButton, 'LEFT', 2, 0)
-		if categoryData.expanded then
-			categoryButton.indicator:SetAtlas('uitools-icon-minimize')
+			local categoryInfo = {
+				type = 'category',
+				name = categoryName,
+				categoryIndex = categoryName,
+				isToken = categoryData.isAddonCategory,
+				selected = (ActiveModule == coreSubCategory.sourceName)
+			}
+			UI.SetupFilterButton(categoryButton, categoryInfo)
+
+			-- No expand/collapse indicator for core-only categories
+
+			-- Make it selectable
+			categoryButton:SetScript(
+				'OnClick',
+				function(self)
+					-- Update button states (clear all selected states)
+					for _, btn in pairs(LogWindow.moduleButtons) do
+						btn.SelectedTexture:Hide()
+						btn:SetNormalFontObject(GameFontHighlightSmall)
+					end
+					-- Set this button as selected
+					self.SelectedTexture:Show()
+					self:SetNormalFontObject(GameFontNormalSmall)
+
+					ActiveModule = coreSubCategory.sourceName
+					UpdateLogDisplay()
+				end
+			)
+
+			-- Standard hover effects
+			categoryButton:SetScript(
+				'OnEnter',
+				function(self)
+					self.HighlightTexture:Show()
+				end
+			)
+			categoryButton:SetScript(
+				'OnLeave',
+				function(self)
+					self.HighlightTexture:Hide()
+				end
+			)
+
+			table.insert(LogWindow.moduleButtons, categoryButton)
+			yOffset = yOffset - (buttonHeight + 1)
 		else
-			categoryButton.indicator:SetAtlas('uitools-icon-plus')
+			-- Create expandable category button (has multiple subcategories)
+			local categoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, 'LibAT_CategoryButton_' .. categoryName)
+			categoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
+
+			-- Set up category button using Blizzard's helper function
+			local categoryInfo = {
+				type = 'category',
+				name = categoryName .. ' (' .. subCategoryCount .. ')',
+				categoryIndex = categoryName,
+				isToken = categoryData.isAddonCategory, -- Use isToken for external addons (matches Blizzard's pattern)
+				selected = false
+			}
+			UI.SetupFilterButton(categoryButton, categoryInfo)
+
+			-- Add expand/collapse indicator
+			categoryButton.indicator = categoryButton:CreateTexture(nil, 'OVERLAY')
+			categoryButton.indicator:SetSize(15, 15)
+			categoryButton.indicator:SetPoint('LEFT', categoryButton, 'LEFT', 2, 0)
+			if categoryData.expanded then
+				categoryButton.indicator:SetAtlas('uitools-icon-minimize')
+			else
+				categoryButton.indicator:SetAtlas('uitools-icon-plus')
+			end
+
+			-- Override text color for gold category headers
+			categoryButton.Text:SetTextColor(1, 0.82, 0)
+
+			-- Category button functionality
+			categoryButton:SetScript(
+				'OnClick',
+				function(self)
+					categoryData.expanded = not categoryData.expanded
+
+					-- Persist expansion state for registered addon categories
+					if categoryData.isAddonCategory and AddonCategories[categoryName] then
+						AddonCategories[categoryName].expanded = categoryData.expanded
+					end
+
+					if categoryData.expanded then
+						self.indicator:SetAtlas('uitools-icon-minimize')
+					else
+						self.indicator:SetAtlas('uitools-icon-plus')
+					end
+					CreateCategoryTree(sortedCategories) -- Rebuild tree
+				end
+			)
+
+			-- Standard hover effects
+			categoryButton:SetScript(
+				'OnEnter',
+				function(self)
+					self.HighlightTexture:Show()
+				end
+			)
+			categoryButton:SetScript(
+				'OnLeave',
+				function(self)
+					self.HighlightTexture:Hide()
+				end
+			)
+
+			categoryData.button = categoryButton
+			table.insert(LogWindow.categoryButtons, categoryButton)
+			yOffset = yOffset - (buttonHeight + 1)
 		end
 
-		-- Override text color for gold category headers
-		categoryButton.Text:SetTextColor(1, 0.82, 0)
-
-		-- Category button functionality
-		categoryButton:SetScript(
-			'OnClick',
-			function(self)
-				categoryData.expanded = not categoryData.expanded
-
-				-- Persist expansion state for registered addon categories
-				if categoryData.isAddonCategory and AddonCategories[categoryName] then
-					AddonCategories[categoryName].expanded = categoryData.expanded
-				end
-
-				if categoryData.expanded then
-					self.indicator:SetAtlas('uitools-icon-minimize')
-				else
-					self.indicator:SetAtlas('uitools-icon-plus')
-				end
-				CreateCategoryTree(sortedCategories) -- Rebuild tree
-			end
-		)
-
-		-- Standard hover effects
-		categoryButton:SetScript(
-			'OnEnter',
-			function(self)
-				self.HighlightTexture:Show()
-			end
-		)
-		categoryButton:SetScript(
-			'OnLeave',
-			function(self)
-				self.HighlightTexture:Hide()
-			end
-		)
-
-		categoryData.button = categoryButton
-		table.insert(LogWindow.categoryButtons, categoryButton)
-		yOffset = yOffset - (buttonHeight + 1)
-
-		-- Create subCategory and subSubCategory buttons if category is expanded
-		if categoryData.expanded then
+		-- Create subCategory and subSubCategory buttons if category is expanded (skip for core-only categories)
+		if categoryData.expanded and not isCoreOnly then
 			for _, subCategoryName in ipairs(categoryData.sortedSubCategories) do
 				local subCategoryData = categoryData.subCategories[subCategoryName]
 
@@ -620,7 +681,7 @@ local function CreateLogWindow()
 	LogWindow.ReloadButton:SetScript(
 		'OnClick',
 		function()
-			ReloadUI()
+			LibAT:SafeReloadUI()
 		end
 	)
 
@@ -1005,10 +1066,97 @@ end
 -- Initialize the external Logger API
 LibAT.Logger = {} ---@class LibAT.Logger
 
----Register a simple addon for logging under "External Addons" category
+---Helper function to create a logger object for a module
+---@param addonName string The addon name
+---@param moduleName string The full module name (addonName or addonName.category)
+---@return LoggerObject
+local function CreateLoggerObject(addonName, moduleName)
+	---@type LoggerObject
+	local loggerObj = {
+		Categories = {}
+	}
+
+	-- Generic log function
+	loggerObj.log = function(message, level)
+		LibAT.Log(message, moduleName, level)
+	end
+
+	-- Shorthand methods for each log level
+	loggerObj.debug = function(message)
+		LibAT.Log(message, moduleName, 'debug')
+	end
+
+	loggerObj.info = function(message)
+		LibAT.Log(message, moduleName, 'info')
+	end
+
+	loggerObj.warning = function(message)
+		LibAT.Log(message, moduleName, 'warning')
+	end
+
+	loggerObj.error = function(message)
+		LibAT.Log(message, moduleName, 'error')
+	end
+
+	loggerObj.critical = function(message)
+		LibAT.Log(message, moduleName, 'critical')
+	end
+
+	-- RegisterCategory method for dynamic category creation
+	loggerObj.RegisterCategory = function(self, categoryName)
+		if not categoryName or categoryName == '' or type(categoryName) ~= 'string' then
+			error('RegisterCategory: categoryName must be a non-empty string')
+		end
+
+		-- Check for invalid characters
+		if categoryName:find('%.') then
+			error('RegisterCategory: categoryName "' .. categoryName .. '" cannot contain dots (.)')
+		end
+
+		-- If category already exists, return it
+		if self.Categories[categoryName] then
+			return self.Categories[categoryName]
+		end
+
+		-- Create the full module name
+		local fullModuleName = addonName .. '.' .. categoryName
+
+		-- Create new logger object for this category
+		local categoryLogger = CreateLoggerObject(addonName, fullModuleName)
+
+		-- Store in Categories table
+		self.Categories[categoryName] = categoryLogger
+
+		-- Initialize in database if logger is ready
+		if logger.DB then
+			logger.DB.modules[fullModuleName] = true
+		end
+
+		-- Update category registration
+		if not AddonCategories[addonName] then
+			AddonCategories[addonName] = {
+				subcategories = {},
+				expanded = false
+			}
+		end
+		table.insert(AddonCategories[addonName].subcategories, categoryName)
+
+		-- Rebuild UI if window exists
+		if LogWindow and LogWindow.Categories then
+			CreateLogSourceCategories()
+		end
+
+		return categoryLogger
+	end
+
+	return loggerObj
+end
+
+---Register an addon for logging with optional pre-defined categories
 ---@param addonName string Name of the addon to register
----@return SimpleLogger logger Logger function that takes (message, level?)
-function LibAT.Logger.RegisterAddon(addonName)
+---@param categories? string[] Optional array of pre-defined category names
+---@return LoggerObject logger Logger object with methods and category support
+function LibAT.Logger.RegisterAddon(addonName, categories)
 	-- Protect against incorrect colon syntax: LibAT.Logger:RegisterAddon()
 	if type(addonName) == 'table' and addonName == LibAT.Logger then
 		error('RegisterAddon: Called with colon syntax (:) - use dot syntax (.) instead: LibAT.Logger.RegisterAddon(addonName)')
@@ -1018,81 +1166,65 @@ function LibAT.Logger.RegisterAddon(addonName)
 		error('RegisterAddon: addonName must be a non-empty string')
 	end
 
-	-- Store registration
-	RegisteredAddons[addonName] = true
-
-	-- Create and cache logger function
-	local loggerFunc = function(message, level)
-		LibAT.Log(message, addonName, level)
+	-- Validate addonName doesn't contain problematic characters
+	if addonName:find('%.') then
+		error('RegisterAddon: addonName "' .. addonName .. '" cannot contain dots (.)')
 	end
 
-	AddonLoggers[addonName] = loggerFunc
+	-- Create the main logger object
+	local loggerObj = CreateLoggerObject(addonName, addonName)
 
-	-- Initialize in database if logger is ready
+	-- If categories are provided, pre-register them
+	if categories and type(categories) == 'table' then
+		if #categories == 0 then
+			error('RegisterAddon: categories array must not be empty if provided')
+		end
+
+		-- Validate and create all categories
+		for i, categoryName in ipairs(categories) do
+			if type(categoryName) ~= 'string' or categoryName == '' then
+				error('RegisterAddon: category at index ' .. i .. ' must be a non-empty string')
+			end
+			if categoryName:find('%.') then
+				error('RegisterAddon: category "' .. categoryName .. '" cannot contain dots (.)')
+			end
+		end
+
+		-- Store category registration
+		AddonCategories[addonName] = {
+			subcategories = categories,
+			expanded = false
+		}
+
+		-- Create logger objects for each pre-defined category
+		for _, categoryName in ipairs(categories) do
+			local fullModuleName = addonName .. '.' .. categoryName
+			loggerObj.Categories[categoryName] = CreateLoggerObject(addonName, fullModuleName)
+
+			-- Initialize in database if logger is ready
+			if logger.DB then
+				logger.DB.modules[fullModuleName] = true
+			end
+		end
+	else
+		-- Simple registration - store as a registered addon
+		RegisteredAddons[addonName] = true
+	end
+
+	-- Cache the logger object
+	AddonLoggers[addonName] = loggerObj
+
+	-- Initialize main addon in database if logger is ready
 	if logger.DB then
 		logger.DB.modules[addonName] = true
 	end
 
-	return loggerFunc
-end
-
----Register an addon with its own expandable category and subcategories
----@param addonName string Name of the addon (will be the category name)
----@param subcategories string[] Array of subcategory names
----@return ComplexLoggers loggers Table of logger functions keyed by subcategory name
-function LibAT.Logger.RegisterAddonCategory(addonName, subcategories)
-	-- Protect against incorrect colon syntax: LibAT.Logger:RegisterAddonCategory()
-	if type(addonName) == 'table' and addonName == LibAT.Logger then
-		error('RegisterAddonCategory: Called with colon syntax (:) - use dot syntax (.) instead: LibAT.Logger.RegisterAddonCategory(addonName, subcategories)')
+	-- Rebuild UI if window exists
+	if LogWindow and LogWindow.Categories then
+		CreateLogSourceCategories()
 	end
 
-	if not addonName or addonName == '' or type(addonName) ~= 'string' then
-		error('RegisterAddonCategory: addonName must be a non-empty string')
-	end
-	if not subcategories or type(subcategories) ~= 'table' or #subcategories == 0 then
-		error('RegisterAddonCategory: subcategories must be a non-empty array')
-	end
-
-	-- Validate all subcategory names are strings
-	for i, subcat in ipairs(subcategories) do
-		if type(subcat) ~= 'string' or subcat == '' then
-			error('RegisterAddonCategory: subcategory at index ' .. i .. ' must be a non-empty string, got: ' .. type(subcat))
-		end
-		-- Check for invalid characters that could cause parsing issues
-		if subcat:find('%.') then
-			error('RegisterAddonCategory: subcategory "' .. subcat .. '" cannot contain dots (.) as they are used for hierarchy parsing')
-		end
-	end
-
-	-- Validate addonName doesn't contain problematic characters
-	if addonName:find('%.') then
-		error('RegisterAddonCategory: addonName "' .. addonName .. '" cannot contain dots (.) as they are used for hierarchy parsing')
-	end
-
-	-- Store category registration
-	AddonCategories[addonName] = {
-		subcategories = subcategories,
-		expanded = false
-	}
-
-	-- Create logger functions for each subcategory
-	local loggers = {}
-	for _, subcat in ipairs(subcategories) do
-		local moduleName = addonName .. '.' .. subcat
-		loggers[subcat] = function(message, level)
-			LibAT.Log(message, moduleName, level)
-		end
-
-		-- Initialize in database if logger is ready
-		if logger.DB then
-			logger.DB.modules[moduleName] = true
-		end
-	end
-
-	-- Cache the logger table
-	AddonLoggers[addonName] = loggers
-
-	return loggers
+	return loggerObj
 end
 
 ---Enhanced logging function with log levels
@@ -1566,8 +1698,7 @@ function logger:OnInitialize()
 			y = 0
 		},
 		modules = {
-			['*'] = true, -- Default to enabled for logging approach
-			Core = true
+			['*'] = true -- Default to enabled for logging approach
 		},
 		moduleLogLevels = {
 			['*'] = 0 -- Use global level by default
