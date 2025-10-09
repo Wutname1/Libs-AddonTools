@@ -19,10 +19,108 @@ LibAT.Version = ''
 --@end-do-not-package@
 
 -- Core systems storage
+LibAT.UI = {}
 LibAT.Components = {}
+LibAT.Systems = {}
 
--- Database reference (will be initialized in OnInitialize)
-LibAT.DB = nil
+---Options Manager - Simple interface for managing AceConfig options
+LibAT.Options = {
+	optionsTable = {},
+	registry = nil,
+	dialog = nil
+}
+
+---Initialize the Options system with AceConfig
+function LibAT.Options:Init()
+	if not self.registry then
+		self.registry = LibStub('AceConfigRegistry-3.0', true)
+		self.dialog = LibStub('AceConfigDialog-3.0', true)
+	end
+end
+
+---Add options to the config system
+---@param options table The options table
+---@param name string The name for this options group
+---@param parent? string Optional parent category
+function LibAT.Options:AddOptions(options, name, parent)
+	self:Init()
+
+	if not self.registry then
+		LibAT:Print('Warning: AceConfig not available, options cannot be registered')
+		return
+	end
+
+	-- Store the options
+	self.optionsTable[name] = options
+
+	-- Register with AceConfig if available
+	if self.registry and self.dialog then
+		self.registry:RegisterOptionsTable(name, options)
+
+		-- Try to add to Blizzard options
+		-- If parent is specified but doesn't exist, add without parent
+		local success, err =
+			pcall(
+			function()
+				if parent then
+					-- First ensure parent exists by trying to create it
+					if not self.optionsTable[parent] then
+						-- Create a dummy parent category
+						local parentOptions = {
+							type = 'group',
+							name = parent,
+							args = {}
+						}
+						self.registry:RegisterOptionsTable(parent, parentOptions)
+						self.dialog:AddToBlizOptions(parent, parent)
+						self.optionsTable[parent] = parentOptions
+					end
+					self.dialog:AddToBlizOptions(name, name, parent)
+				else
+					self.dialog:AddToBlizOptions(name, name)
+				end
+			end
+		)
+
+		if not success then
+			-- Fallback: add without parent if there was an error
+			LibAT:Print('Warning: Could not add options with parent "' .. tostring(parent) .. '", adding as standalone. Error: ' .. tostring(err))
+			pcall(
+				function()
+					self.dialog:AddToBlizOptions(name, name)
+				end
+			)
+		end
+	end
+end
+
+---Toggle options dialog
+---@param path? table Optional path to specific options
+function LibAT.Options:ToggleOptions(path)
+	self:Init()
+
+	if self.dialog then
+		if path and #path > 0 then
+			-- Open specific options page
+			Settings.OpenToCategory(path[#path])
+		else
+			-- Open main LibAT options
+			Settings.OpenToCategory('Libs-AddonTools')
+		end
+	end
+end
+
+---Register a system with LibAT
+---@param name string The name of the system
+---@param system table The system object
+function LibAT:RegisterSystem(name, system)
+	if not name or not system then
+		self:Print('RegisterSystem: Invalid parameters')
+		return
+	end
+	self.Systems[name] = system
+	self:Print(string.format('Registered system: %s', name))
+end
 
 ---Initialize the LibAT framework
 function LibAT:OnInitialize()
@@ -91,5 +189,3 @@ SLASH_RL1 = '/rl'
 SlashCmdList['RL'] = function()
 	ReloadUI()
 end
-
-return LibAT

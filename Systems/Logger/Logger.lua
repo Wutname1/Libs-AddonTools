@@ -4,6 +4,9 @@ local logger = LibAT:NewModule('Handler.Logger') ---@class LibAT.LoggerInternal 
 LibAT.Logger = logger
 logger.description = 'SpartanUI Logging System'
 
+-- Use LibAT shared UI components
+local UI = LibAT.UI
+
 ----------------------------------------------------------------------------------------------------
 -- Type Definitions for Logger System
 ----------------------------------------------------------------------------------------------------
@@ -67,87 +70,6 @@ local function GetLogLevelByPriority(priority)
 		end
 	end
 	return 'info', LOG_LEVELS['info'] -- Default fallback
-end
-
-local function FilterButton_SetUp(button, info)
-	local normalText = button.Text
-	local normalTexture = button.NormalTexture
-	local line = button.Lines
-	local btnWidth = 144
-	local btnHeight = 20
-
-	if info.type == 'category' then
-		if info.isToken then
-			button:SetNormalFontObject(GameFontNormalSmallBattleNetBlueLeft)
-		else
-			button:SetNormalFontObject(GameFontNormalSmall)
-		end
-
-		button.NormalTexture:SetAtlas('auctionhouse-nav-button', false)
-		button.NormalTexture:SetSize(btnWidth + 6, btnHeight + 11)
-		button.NormalTexture:ClearAllPoints()
-		button.NormalTexture:SetPoint('TOPLEFT', -2, 0)
-		button.SelectedTexture:SetAtlas('auctionhouse-nav-button-select', false)
-		button.SelectedTexture:SetSize(btnWidth + 2, btnHeight)
-		button.SelectedTexture:ClearAllPoints()
-		button.SelectedTexture:SetPoint('LEFT')
-		button.HighlightTexture:SetAtlas('auctionhouse-nav-button-highlight', false)
-		button.HighlightTexture:SetSize(btnWidth + 2, btnHeight)
-		button.HighlightTexture:ClearAllPoints()
-		button.HighlightTexture:SetPoint('LEFT')
-		button.HighlightTexture:SetBlendMode('BLEND')
-		button:SetText(info.name)
-		normalText:SetPoint('LEFT', button, 'LEFT', 8, 0)
-		normalTexture:SetAlpha(1.0)
-		line:Hide()
-	elseif info.type == 'subCategory' then
-		button:SetNormalFontObject(GameFontHighlightSmall)
-		button.NormalTexture:SetAtlas('auctionhouse-nav-button-secondary', false)
-		button.NormalTexture:SetSize(btnWidth + 3, btnHeight + 11)
-		button.NormalTexture:ClearAllPoints()
-		button.NormalTexture:SetPoint('TOPLEFT', 1, 0)
-		button.SelectedTexture:SetAtlas('auctionhouse-nav-button-secondary-select', false)
-		button.SelectedTexture:SetSize(btnWidth - 10, btnHeight)
-		button.SelectedTexture:ClearAllPoints()
-		button.SelectedTexture:SetPoint('TOPLEFT', 10, 0)
-		button.HighlightTexture:SetAtlas('auctionhouse-nav-button-secondary-highlight', false)
-		button.HighlightTexture:SetSize(btnWidth - 10, btnHeight)
-		button.HighlightTexture:ClearAllPoints()
-		button.HighlightTexture:SetPoint('TOPLEFT', 10, 0)
-		button.HighlightTexture:SetBlendMode('BLEND')
-		button:SetText(info.name or '')
-		normalText:SetPoint('LEFT', button, 'LEFT', 18, 0)
-		normalTexture:SetAlpha(1.0)
-		line:Hide()
-	elseif info.type == 'subSubCategory' then
-		button:SetNormalFontObject(GameFontHighlightSmall)
-		button.NormalTexture:ClearAllPoints()
-		button.NormalTexture:SetPoint('TOPLEFT', 10, 0)
-		button.SelectedTexture:SetAtlas('auctionhouse-ui-row-select', false)
-		button.SelectedTexture:SetSize(btnWidth - 20, btnHeight - 3)
-		button.SelectedTexture:ClearAllPoints()
-		button.SelectedTexture:SetPoint('TOPRIGHT', 0, -2)
-		button.HighlightTexture:SetAtlas('auctionhouse-ui-row-highlight', false)
-		button.HighlightTexture:SetSize(btnWidth - 20, btnHeight - 3)
-		button.HighlightTexture:ClearAllPoints()
-		button.HighlightTexture:SetPoint('TOPRIGHT', 0, -2)
-		button.HighlightTexture:SetBlendMode('ADD')
-		button:SetText(info.name)
-		normalText:SetPoint('LEFT', button, 'LEFT', 26, 0)
-		normalTexture:SetAlpha(0.0)
-		line:Show()
-	end
-	button.type = info.type
-
-	if info.type == 'category' then
-		button.categoryIndex = info.categoryIndex
-	elseif info.type == 'subCategory' then
-		button.subCategoryIndex = info.subCategoryIndex
-	elseif info.type == 'subSubCategory' then
-		button.subSubCategoryIndex = info.subSubCategoryIndex
-	end
-
-	button.SelectedTexture:SetShown(info.selected)
 end
 
 -- Function to parse and categorize log sources using hierarchical system
@@ -319,44 +241,6 @@ function CreateLogSourceCategories()
 	CreateCategoryTree(sortedCategories)
 end
 
--- Function to create a button with the proper AuctionHouse template structure
-local function CreateLoggerFilterButton(parent, name)
-	local button = CreateFrame('Button', name, parent, 'TruncatedTooltipScriptTemplate')
-	button:SetSize(150, 21)
-
-	-- Create all texture layers as defined in the XML template
-	-- BACKGROUND layer
-	button.Lines = button:CreateTexture(nil, 'BACKGROUND')
-	button.Lines:SetAtlas('auctionhouse-nav-button-tertiary-filterline', true)
-	button.Lines:SetPoint('LEFT', button, 'LEFT', 18, 3)
-
-	button.NormalTexture = button:CreateTexture(nil, 'BACKGROUND')
-
-	-- BORDER layer
-	button.HighlightTexture = button:CreateTexture(nil, 'BORDER')
-	button.HighlightTexture:Hide()
-
-	-- ARTWORK layer
-	button.SelectedTexture = button:CreateTexture(nil, 'ARTWORK')
-	button.SelectedTexture:Hide()
-
-	-- Button text with shadow
-	button.Text = button:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
-	button.Text:SetSize(0, 8)
-	button.Text:SetPoint('LEFT', button, 'LEFT', 4, 0)
-	button.Text:SetPoint('RIGHT', button, 'RIGHT', -4, 0)
-	button.Text:SetJustifyH('LEFT')
-	-- Add text shadow
-	button.Text:SetShadowOffset(1, -1)
-	button.Text:SetShadowColor(0, 0, 0)
-
-	-- Set font objects
-	button:SetNormalFontObject(GameFontNormalSmall)
-	button:SetHighlightFontObject(GameFontHighlightSmall)
-
-	return button
-end
-
 -- Function to create the visual category tree (styled like AuctionFrame's category list)
 function CreateCategoryTree(sortedCategories)
 	if not LogWindow or not LogWindow.ModuleTree then
@@ -395,7 +279,7 @@ function CreateCategoryTree(sortedCategories)
 		end
 
 		-- Create category button using the proper template
-		local categoryButton = CreateLoggerFilterButton(LogWindow.ModuleTree, 'LibAT_CategoryButton_' .. categoryName)
+		local categoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, 'LibAT_CategoryButton_' .. categoryName)
 		categoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
 		-- Set up category button using Blizzard's helper function
@@ -406,7 +290,7 @@ function CreateCategoryTree(sortedCategories)
 			isToken = categoryData.isAddonCategory, -- Use isToken for external addons (matches Blizzard's pattern)
 			selected = false
 		}
-		FilterButton_SetUp(categoryButton, categoryInfo)
+		UI.SetupFilterButton(categoryButton, categoryInfo)
 
 		-- Add expand/collapse indicator
 		categoryButton.indicator = categoryButton:CreateTexture(nil, 'OVERLAY')
@@ -465,7 +349,7 @@ function CreateCategoryTree(sortedCategories)
 				local subCategoryData = categoryData.subCategories[subCategoryName]
 
 				-- Create subCategory button using the proper template
-				local subCategoryButton = CreateLoggerFilterButton(LogWindow.ModuleTree, nil)
+				local subCategoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, nil)
 				subCategoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
 				-- Set up subCategory button using Blizzard's helper function
@@ -475,9 +359,7 @@ function CreateCategoryTree(sortedCategories)
 					subCategoryIndex = subCategoryName,
 					selected = (ActiveModule == (subCategoryData.sourceName or subCategoryName))
 				}
-				FilterButton_SetUp(subCategoryButton, subCategoryInfo)
-
-				-- If this subCategory has subSubCategories, add expand/collapse indicator
+				UI.SetupFilterButton(subCategoryButton, subCategoryInfo) -- If this subCategory has subSubCategories, add expand/collapse indicator
 				if subCategoryData.subSubCategories and next(subCategoryData.subSubCategories) then
 					subCategoryButton.indicator = subCategoryButton:CreateTexture(nil, 'OVERLAY')
 					subCategoryButton.indicator:SetSize(12, 12)
@@ -544,7 +426,7 @@ function CreateCategoryTree(sortedCategories)
 						local subSubCategoryData = subCategoryData.subSubCategories[subSubCategoryName]
 
 						-- Create subSubCategory button using the proper template
-						local subSubCategoryButton = CreateLoggerFilterButton(LogWindow.ModuleTree, nil)
+						local subSubCategoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, nil)
 						subSubCategoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
 						-- Set up subSubCategory button using Blizzard's helper function
@@ -554,9 +436,7 @@ function CreateCategoryTree(sortedCategories)
 							subSubCategoryIndex = subSubCategoryName,
 							selected = (ActiveModule == subSubCategoryData.sourceName)
 						}
-						FilterButton_SetUp(subSubCategoryButton, subSubCategoryInfo)
-
-						-- Standard hover effects
+						UI.SetupFilterButton(subSubCategoryButton, subSubCategoryInfo) -- Standard hover effects
 						subSubCategoryButton:SetScript(
 							'OnEnter',
 							function(self)
@@ -606,51 +486,29 @@ local function CreateLogWindow()
 		return
 	end
 
-	-- Create main frame using ButtonFrameTemplate for proper skinning (AH window size: 800x538)
-	LogWindow = CreateFrame('Frame', 'SpartanUI_LogWindow', UIParent, 'ButtonFrameTemplate')
-	ButtonFrameTemplate_HidePortrait(LogWindow)
-	LogWindow:SetSize(800, 538)
-	LogWindow:SetPoint('CENTER', UIParent, 'CENTER', 0, 0)
-	LogWindow:SetFrameStrata('HIGH')
-	LogWindow:Hide()
-
-	-- Make the window movable
-	LogWindow:SetMovable(true)
-	LogWindow:EnableMouse(true)
-	LogWindow:RegisterForDrag('LeftButton')
-	LogWindow:SetScript('OnDragStart', LogWindow.StartMoving)
-	LogWindow:SetScript(
-		'OnDragStop',
-		function(self)
-			self:StopMovingOrSizing()
-		end
+	-- Create base window using LibAT.UI
+	LogWindow =
+		UI.CreateWindow(
+		{
+			name = 'LibAT_LogWindow',
+			title = '|cffffffffSpartan|cffe21f1fUI|r Logging',
+			width = 800,
+			height = 538,
+			portrait = 'Interface\\AddOns\\SpartanUI\\images\\LogoSpartanUI'
+		}
 	)
 
-	-- Set the portrait (with safety checks)
-	if LogWindow.portrait then
-		if LogWindow.portrait.SetTexture then
-			LogWindow.portrait:SetTexture('Interface\\AddOns\\SpartanUI\\images\\LogoSpartanUI')
-		end
-	end
+	-- Create control frame (top bar for search/filters)
+	LogWindow.ControlFrame = UI.CreateControlFrame(LogWindow)
 
-	-- Set title
-	LogWindow:SetTitle('|cffffffffSpartan|cffe21f1fUI|r Logging')
-
-	-- Create control frame positioned like AuctionHouse SearchBar (y=-29)
-	LogWindow.ControlFrame = CreateFrame('Frame', nil, LogWindow)
-	LogWindow.ControlFrame:SetPoint('TOPLEFT', LogWindow, 'TOPLEFT', 2, -33)
-	LogWindow.ControlFrame:SetPoint('TOPRIGHT', LogWindow, 'TOPRIGHT', -2, -33)
-	LogWindow.ControlFrame:SetHeight(28) -- Reduced height to match AH
-
+	-- Create header anchor (slightly offset for controls)
 	LogWindow.HeaderAnchor = CreateFrame('Frame', nil, LogWindow)
 	LogWindow.HeaderAnchor:SetPoint('TOPLEFT', LogWindow.ControlFrame, 'TOPLEFT', 53, 0)
 	LogWindow.HeaderAnchor:SetPoint('TOPRIGHT', LogWindow.ControlFrame, 'TOPRIGHT', -16, 0)
-	LogWindow.HeaderAnchor:SetHeight(28) -- Reduced height to match AH
+	LogWindow.HeaderAnchor:SetHeight(28)
 
-	-- All controls on same horizontal line, left to right: checkbox, search, logging level, gear
 	-- Search all modules checkbox (leftmost)
-	LogWindow.SearchAllModules = CreateFrame('CheckButton', 'LibAT_SearchAllModules', LogWindow.HeaderAnchor, 'UICheckButtonTemplate')
-	LogWindow.SearchAllModules:SetSize(18, 18)
+	LogWindow.SearchAllModules = UI.CreateCheckbox(LogWindow.HeaderAnchor, 'Search All Modules')
 	LogWindow.SearchAllModules:SetPoint('LEFT', LogWindow.HeaderAnchor, 'LEFT', 0, 0)
 	LogWindow.SearchAllModules:SetScript(
 		'OnClick',
@@ -659,17 +517,11 @@ local function CreateLogWindow()
 			UpdateLogDisplay()
 		end
 	)
-
-	LogWindow.SearchAllModulesLabel = LogWindow.HeaderAnchor:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
-	LogWindow.SearchAllModulesLabel:SetText('Search All Modules')
-	LogWindow.SearchAllModulesLabel:SetPoint('LEFT', LogWindow.SearchAllModules, 'RIGHT', 2, 0)
-	LogWindow.SearchAllModulesLabel:SetTextColor(1, 1, 1) -- White text
+	LogWindow.SearchAllModulesLabel = LogWindow.SearchAllModules.Label
 
 	-- Search box positioned after checkbox
-	LogWindow.SearchBox = CreateFrame('EditBox', 'LibAT_LogSearchBox', LogWindow.HeaderAnchor, 'SearchBoxTemplate')
-	LogWindow.SearchBox:SetSize(241, 22)
+	LogWindow.SearchBox = UI.CreateSearchBox(LogWindow.HeaderAnchor, 241)
 	LogWindow.SearchBox:SetPoint('LEFT', LogWindow.SearchAllModulesLabel, 'RIGHT', 10, 0)
-	LogWindow.SearchBox:SetAutoFocus(false)
 	LogWindow.SearchBox:SetScript(
 		'OnTextChanged',
 		function(self)
@@ -687,58 +539,9 @@ local function CreateLogWindow()
 		end
 	)
 
-	-- Settings button (workshop icon, positioned after logging level dropdown)
-	LogWindow.OpenSettings = CreateFrame('Button', nil, LogWindow.HeaderAnchor)
-	LogWindow.OpenSettings:SetSize(24, 24)
+	-- Settings button (workshop icon, positioned at right)
+	LogWindow.OpenSettings = UI.CreateIconButton(LogWindow.HeaderAnchor, 'Warfronts-BaseMapIcons-Empty-Workshop', 'Warfronts-BaseMapIcons-Alliance-Workshop', 'Warfronts-BaseMapIcons-Horde-Workshop')
 	LogWindow.OpenSettings:SetPoint('RIGHT', LogWindow.HeaderAnchor, 'RIGHT', 0, 0)
-
-	-- Set up texture states
-	LogWindow.OpenSettings:SetNormalTexture('Interface\\AddOns\\SpartanUI\\images\\empty') -- Placeholder, will use atlas
-	LogWindow.OpenSettings:SetHighlightTexture('Interface\\AddOns\\SpartanUI\\images\\empty') -- Placeholder, will use atlas
-	LogWindow.OpenSettings:SetPushedTexture('Interface\\AddOns\\SpartanUI\\images\\empty') -- Placeholder, will use atlas
-
-	-- Create texture layers using atlas
-	LogWindow.OpenSettings.NormalTexture = LogWindow.OpenSettings:CreateTexture(nil, 'ARTWORK')
-	LogWindow.OpenSettings.NormalTexture:SetAtlas('Warfronts-BaseMapIcons-Empty-Workshop')
-	LogWindow.OpenSettings.NormalTexture:SetAllPoints()
-
-	LogWindow.OpenSettings.HighlightTexture = LogWindow.OpenSettings:CreateTexture(nil, 'HIGHLIGHT')
-	LogWindow.OpenSettings.HighlightTexture:SetAtlas('Warfronts-BaseMapIcons-Alliance-Workshop')
-	LogWindow.OpenSettings.HighlightTexture:SetAllPoints()
-	LogWindow.OpenSettings.HighlightTexture:SetAlpha(0)
-
-	LogWindow.OpenSettings.PushedTexture = LogWindow.OpenSettings:CreateTexture(nil, 'ARTWORK')
-	LogWindow.OpenSettings.PushedTexture:SetAtlas('Warfronts-BaseMapIcons-Horde-Workshop')
-	LogWindow.OpenSettings.PushedTexture:SetAllPoints()
-	LogWindow.OpenSettings.PushedTexture:SetAlpha(0)
-
-	-- Set up hover and click effects
-	LogWindow.OpenSettings:SetScript(
-		'OnEnter',
-		function(self)
-			self.HighlightTexture:SetAlpha(1)
-		end
-	)
-	LogWindow.OpenSettings:SetScript(
-		'OnLeave',
-		function(self)
-			self.HighlightTexture:SetAlpha(0)
-		end
-	)
-	LogWindow.OpenSettings:SetScript(
-		'OnMouseDown',
-		function(self)
-			self.PushedTexture:SetAlpha(1)
-			self.NormalTexture:SetAlpha(0)
-		end
-	)
-	LogWindow.OpenSettings:SetScript(
-		'OnMouseUp',
-		function(self)
-			self.PushedTexture:SetAlpha(0)
-			self.NormalTexture:SetAlpha(1)
-		end
-	)
 	LogWindow.OpenSettings:SetScript(
 		'OnClick',
 		function()
@@ -746,39 +549,23 @@ local function CreateLogWindow()
 		end
 	)
 
-	-- Logging Level dropdown positioned after search box
-	LogWindow.LoggingLevelButton = CreateFrame('DropdownButton', 'LibAT_LoggingLevelButton', LogWindow.HeaderAnchor, 'WowStyle1FilterDropdownTemplate')
+	-- Logging Level dropdown positioned before settings button
+	LogWindow.LoggingLevelButton = UI.CreateDropdown(LogWindow.HeaderAnchor, 'Logging Level', 120, 22)
 	LogWindow.LoggingLevelButton:SetPoint('RIGHT', LogWindow.OpenSettings, 'LEFT', -10, 0)
-	LogWindow.LoggingLevelButton:SetSize(120, 22)
-	LogWindow.LoggingLevelButton:SetText('Logging Level')
+
 	-- Set initial dropdown text based on current global level
 	local _, globalLevelData = GetLogLevelByPriority(GlobalLogLevel)
 	if globalLevelData then
 		LogWindow.LoggingLevelButton:SetText('Logging Level')
 	end
 
-	-- Create main content area positioned like AuctionHouse panels (-4px from SearchBar bottom)
-	LogWindow.MainContent = CreateFrame('Frame', nil, LogWindow)
-	LogWindow.MainContent:SetPoint('TOPLEFT', LogWindow.ControlFrame, 'BOTTOMLEFT', 0, -4)
-	LogWindow.MainContent:SetPoint('BOTTOMRIGHT', LogWindow, 'BOTTOMRIGHT', -20, 12)
+	-- Create main content area
+	LogWindow.MainContent = UI.CreateContentFrame(LogWindow, LogWindow.ControlFrame)
 
-	-- Left panel for module list (styled like AuctionFrame's category list)
-	LogWindow.LeftPanel = CreateFrame('Frame', 'LibAT_LeftPanel', LogWindow.MainContent)
-	LogWindow.LeftPanel:SetPoint('TOPLEFT', LogWindow.MainContent, 'TOPLEFT', 10, 0)
-	LogWindow.LeftPanel:SetPoint('BOTTOMLEFT', LogWindow.MainContent, 'BOTTOMLEFT', 10, 20)
-	LogWindow.LeftPanel:SetWidth(155)
-	LogWindow.LeftPanel.layoutType = 'InsetFrameTemplate'
+	-- Create left panel for module navigation
+	LogWindow.LeftPanel = UI.CreateLeftPanel(LogWindow.MainContent)
 
-	-- Add AuctionHouse categories background
-	LogWindow.LeftPanel.Background = LogWindow.LeftPanel:CreateTexture(nil, 'BACKGROUND')
-	LogWindow.LeftPanel.Background:SetAtlas('auctionhouse-background-summarylist', true)
-	LogWindow.LeftPanel.Background:SetAllPoints(LogWindow.LeftPanel)
-
-	-- Add nine slice border for left panel
-	LogWindow.LeftPanel.NineSlice = CreateFrame('Frame', 'LibAT_LeftPanelNineSlice', LogWindow.LeftPanel, 'NineSlicePanelTemplate')
-	LogWindow.LeftPanel.NineSlice:SetAllPoints()
-
-	-- Create scroll frame for module tree in left panel with MinimalScrollBar
+	-- Create scroll frame for module tree (will be populated by CreateLogSourceCategories)
 	LogWindow.ModuleScrollFrame = CreateFrame('ScrollFrame', 'LibAT_ModuleScrollFrame', LogWindow.LeftPanel)
 	LogWindow.ModuleScrollFrame:SetPoint('TOPLEFT', LogWindow.LeftPanel, 'TOPLEFT', 2, -7)
 	LogWindow.ModuleScrollFrame:SetPoint('BOTTOMRIGHT', LogWindow.LeftPanel, 'BOTTOMRIGHT', 0, 2)
@@ -793,50 +580,43 @@ local function CreateLogWindow()
 	LogWindow.ModuleScrollFrame:SetScrollChild(LogWindow.ModuleTree)
 	LogWindow.ModuleTree:SetSize(160, 1)
 
-	-- Right panel for log text (main display area like AuctionFrame's item list)
-	LogWindow.RightPanel = CreateFrame('Frame', 'LibAT_RightPanel', LogWindow.MainContent)
-	LogWindow.RightPanel:SetPoint('TOPLEFT', LogWindow.LeftPanel, 'TOPRIGHT', 20, 0)
-	LogWindow.RightPanel:SetPoint('BOTTOMRIGHT', LogWindow.MainContent, 'BOTTOMRIGHT', -10, 20)
-	LogWindow.RightPanel.layoutType = 'InsetFrameTemplate'
+	-- Create right panel for log display
+	LogWindow.RightPanel = UI.CreateRightPanel(LogWindow.MainContent, LogWindow.LeftPanel)
 
-	-- Add AuctionHouse index background
-	LogWindow.RightPanel.Background = LogWindow.RightPanel:CreateTexture(nil, 'BACKGROUND')
-	LogWindow.RightPanel.Background:SetAtlas('auctionhouse-background-index', true)
-	LogWindow.RightPanel.Background:SetAllPoints(LogWindow.RightPanel)
-	-- LogWindow.RightPanel.Background:SetPoint('TOPLEFT', LogWindow.RightPanel, 'TOPLEFT', 3, -3)
+	-- Create scrollable text display for logs
+	LogWindow.TextPanel, LogWindow.EditBox = UI.CreateScrollableTextDisplay(LogWindow.RightPanel)
+	LogWindow.TextPanel:SetPoint('TOPLEFT', LogWindow.RightPanel, 'TOPLEFT', 6, -6)
+	LogWindow.TextPanel:SetPoint('BOTTOMRIGHT', LogWindow.RightPanel, 'BOTTOMRIGHT', 0, 2)
+	LogWindow.EditBox:SetWidth(LogWindow.TextPanel:GetWidth() - 20)
+	LogWindow.EditBox:SetText('No logs active - select a module from the left or enable "Search All Modules"')
 
-	-- Add nine slice border for right panel
-	LogWindow.RightPanel.NineSlice = CreateFrame('Frame', nil, LogWindow.RightPanel, 'NineSlicePanelTemplate')
-	LogWindow.RightPanel.NineSlice:SetAllPoints()
-
-	-- Action buttons positioned in bottom right like AH Cancel Auction button
-	LogWindow.ClearButton = CreateFrame('Button', nil, LogWindow, 'UIPanelButtonTemplate')
-	LogWindow.ClearButton:SetSize(70, 22)
-	LogWindow.ClearButton:SetPoint('BOTTOMRIGHT', LogWindow, 'BOTTOMRIGHT', -3, 4)
-	LogWindow.ClearButton:SetText('Clear')
-	LogWindow.ClearButton:SetScript(
-		'OnClick',
-		function()
-			ClearCurrentLogs()
-		end
+	-- Create action buttons at bottom
+	local actionButtons =
+		UI.CreateActionButtons(
+		LogWindow,
+		{
+			{
+				text = 'Clear',
+				width = 70,
+				onClick = function()
+					ClearCurrentLogs()
+				end
+			},
+			{
+				text = 'Export',
+				width = 70,
+				onClick = function()
+					ExportCurrentLogs()
+				end
+			}
+		}
 	)
-
-	LogWindow.ExportButton = CreateFrame('Button', nil, LogWindow, 'UIPanelButtonTemplate')
-	LogWindow.ExportButton:SetSize(70, 22)
-	LogWindow.ExportButton:SetPoint('RIGHT', LogWindow.ClearButton, 'LEFT', -5, 0)
-	LogWindow.ExportButton:SetText('Export')
-	LogWindow.ExportButton:SetScript(
-		'OnClick',
-		function()
-			ExportCurrentLogs()
-		end
-	)
+	LogWindow.ClearButton = actionButtons[1]
+	LogWindow.ExportButton = actionButtons[2]
 
 	-- Reload UI button positioned in bottom left
-	LogWindow.ReloadButton = CreateFrame('Button', nil, LogWindow, 'UIPanelButtonTemplate')
-	LogWindow.ReloadButton:SetSize(80, 22)
+	LogWindow.ReloadButton = UI.CreateButton(LogWindow, 80, 22, 'Reload UI')
 	LogWindow.ReloadButton:SetPoint('BOTTOMLEFT', LogWindow, 'BOTTOMLEFT', 3, 4)
-	LogWindow.ReloadButton:SetText('Reload UI')
 	LogWindow.ReloadButton:SetScript(
 		'OnClick',
 		function()
@@ -844,57 +624,18 @@ local function CreateLogWindow()
 		end
 	)
 
-	-- Create log text display in right panel with MinimalScrollBar
-	LogWindow.TextPanel = CreateFrame('ScrollFrame', nil, LogWindow.RightPanel)
-	LogWindow.TextPanel:SetPoint('TOPLEFT', LogWindow.RightPanel, 'TOPLEFT', 6, -6)
-	LogWindow.TextPanel:SetPoint('BOTTOMRIGHT', LogWindow.RightPanel, 'BOTTOMRIGHT', 0, 2)
-
-	-- Create minimal scrollbar for right panel
-	LogWindow.TextPanel.ScrollBar = CreateFrame('EventFrame', nil, LogWindow.TextPanel, 'MinimalScrollBar')
-	LogWindow.TextPanel.ScrollBar:SetPoint('TOPLEFT', LogWindow.TextPanel, 'TOPRIGHT', 0, 0)
-	LogWindow.TextPanel.ScrollBar:SetPoint('BOTTOMLEFT', LogWindow.TextPanel, 'BOTTOMRIGHT', 0, 0)
-	ScrollUtil.InitScrollFrameWithScrollBar(LogWindow.TextPanel, LogWindow.TextPanel.ScrollBar)
-
-	-- Create the text display area
-	LogWindow.EditBox = CreateFrame('EditBox', nil, LogWindow.TextPanel)
-	LogWindow.EditBox:SetMultiLine(true)
-	LogWindow.EditBox:SetFontObject('GameFontHighlight') -- Increased font size by 2 from GameFontHighlightSmall
-	LogWindow.EditBox:SetText('No logs active - select a module from the left or enable "Search All Modules"')
-	LogWindow.EditBox:SetWidth(LogWindow.TextPanel:GetWidth() - 20)
-	LogWindow.EditBox:SetScript(
-		'OnTextChanged',
-		function(self)
-			ScrollingEdit_OnTextChanged(self, self:GetParent())
-		end
-	)
-	LogWindow.EditBox:SetScript(
-		'OnCursorChanged',
-		function(self, x, y, w, h)
-			ScrollingEdit_OnCursorChanged(self, x, y - 10, w, h)
-		end
-	)
-	LogWindow.EditBox:SetAutoFocus(false)
-	LogWindow.EditBox:EnableMouse(true) -- Allow selection for copying
-	LogWindow.EditBox:SetTextColor(1, 1, 1) -- White text for better readability
-	LogWindow.TextPanel:SetScrollChild(LogWindow.EditBox)
-
 	-- Auto-scroll checkbox centered under right panel
-	LogWindow.AutoScroll = CreateFrame('CheckButton', 'LibAT_AutoScroll', LogWindow, 'UICheckButtonTemplate')
-	LogWindow.AutoScroll:SetSize(18, 18)
+	LogWindow.AutoScroll = UI.CreateCheckbox(LogWindow, 'Auto-scroll')
 	LogWindow.AutoScroll:SetPoint('CENTER', LogWindow.RightPanel, 'BOTTOM', 0, -15)
 	LogWindow.AutoScroll:SetChecked(AutoScrollEnabled)
-
-	LogWindow.AutoScrollLabel = LogWindow:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
-	LogWindow.AutoScrollLabel:SetText('Auto-scroll')
-	LogWindow.AutoScrollLabel:SetPoint('LEFT', LogWindow.AutoScroll, 'RIGHT', 2, 0)
-	LogWindow.AutoScrollLabel:SetTextColor(1, 1, 1) -- White text
+	LogWindow.AutoScrollLabel = LogWindow.AutoScroll.Label
 
 	-- Initialize data structures
 	LogWindow.Categories = {}
 	LogWindow.categoryButtons = {}
 	LogWindow.moduleButtons = {}
 
-	-- Build log source categories (like AuctionFrame's item categories)
+	-- Build log source categories
 	CreateLogSourceCategories()
 
 	-- Setup dropdown functionality
@@ -1865,6 +1606,9 @@ function logger:OnEnable()
 			LogWindow:Show()
 		end
 	end
+
+	-- Expose as public method for LibAT to use
+	logger.ToggleWindow = ToggleLogWindow
 
 	-- Register direct WoW slash commands
 	SLASH_LibATLOGS1 = '/logs'

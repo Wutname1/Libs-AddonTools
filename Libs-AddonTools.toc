@@ -26,12 +26,10 @@ Core\Framework.lua
 Locales\enUS.lua
 
 # Shared UI System
-Systems\UI\Main.lua
-Systems\UI\UIComponents.lua
-Systems\UI\BaseWindow.lua
-Systems\UI\NavigationTree.lua
+Core\UI\UIComponents.lua
+Core\UI\BaseWindow.lua
+Core\UI\NavigationTree.lua
 
 # Systems
 Systems\Logger\Logger.lua
-
-# Systems\ProfileManager\Profiles.lua
+Systems\ProfileManager\Profiles.lua

@@ -1,6 +1,5 @@
 ---@class LibAT
 local LibAT = LibAT
-local UI = LibAT.UI
 
 ----------------------------------------------------------------------------------------------------
 -- Button Components
@@ -12,7 +11,7 @@ local UI = LibAT.UI
 ---@param height number Button height
 ---@param text string Button text
 ---@return Frame button Standard WoW UI button
-function UI.CreateButton(parent, width, height, text)
+function LibAT.UI.CreateButton(parent, width, height, text)
 	local button = CreateFrame('Button', nil, parent, 'UIPanelButtonTemplate')
 	button:SetSize(width, height)
 	button:SetText(text)
@@ -23,7 +22,7 @@ end
 ---@param parent Frame Parent frame
 ---@param name? string Optional unique name for the button
 ---@return Frame button Filter button with textures
-function UI.CreateFilterButton(parent, name)
+function LibAT.UI.CreateFilterButton(parent, name)
 	local button = CreateFrame('Button', name, parent, 'TruncatedTooltipScriptTemplate')
 	button:SetSize(150, 21)
 
@@ -63,7 +62,7 @@ end
 ---Setup a filter button with proper styling (matches Blizzard's FilterButton_SetUp)
 ---@param button Frame The button to setup
 ---@param info table Button configuration table with type, name, selected, etc.
-function UI.SetupFilterButton(button, info)
+function LibAT.UI.SetupFilterButton(button, info)
 	local normalText = button.Text
 	local normalTexture = button.NormalTexture
 	local line = button.Lines
@@ -151,7 +150,7 @@ end
 ---@param pushedAtlas string Atlas name for pushed state
 ---@param size? number Optional size (default 24)
 ---@return Frame button Icon button
-function UI.CreateIconButton(parent, normalAtlas, highlightAtlas, pushedAtlas, size)
+function LibAT.UI.CreateIconButton(parent, normalAtlas, highlightAtlas, pushedAtlas, size)
 	size = size or 24
 	local button = CreateFrame('Button', nil, parent)
 	button:SetSize(size, size)
@@ -216,7 +215,7 @@ end
 ---@param width number Search box width
 ---@param height? number Optional height (default 22)
 ---@return Frame searchBox Search box with clear button
-function UI.CreateSearchBox(parent, width, height)
+function LibAT.UI.CreateSearchBox(parent, width, height)
 	height = height or 22
 	local searchBox = CreateFrame('EditBox', nil, parent, 'SearchBoxTemplate')
 	searchBox:SetSize(width, height)
@@ -230,7 +229,7 @@ end
 ---@param height number EditBox height
 ---@param multiline? boolean Optional multiline support (default false)
 ---@return EditBox editBox Standard edit box
-function UI.CreateEditBox(parent, width, height, multiline)
+function LibAT.UI.CreateEditBox(parent, width, height, multiline)
 	local editBox = CreateFrame('EditBox', nil, parent)
 	editBox:SetSize(width, height)
 	editBox:SetAutoFocus(false)
@@ -247,7 +246,7 @@ end
 ---@param parent Frame Parent frame
 ---@param label? string Optional label text
 ---@return Frame checkbox Standard checkbox
-function UI.CreateCheckbox(parent, label)
+function LibAT.UI.CreateCheckbox(parent, label)
 	local checkbox = CreateFrame('CheckButton', nil, parent, 'UICheckButtonTemplate')
 	checkbox:SetSize(18, 18)
 
@@ -268,7 +267,7 @@ end
 ---@param width? number Optional width (default 120)
 ---@param height? number Optional height (default 22)
 ---@return Frame dropdown Dropdown button
-function UI.CreateDropdown(parent, text, width, height)
+function LibAT.UI.CreateDropdown(parent, text, width, height)
 	width = width or 120
 	height = height or 22
 	local dropdown = CreateFrame('DropdownButton', nil, parent, 'WowStyle1FilterDropdownTemplate')
@@ -285,7 +284,7 @@ end
 ---@param parent Frame Parent frame
 ---@param atlas string Atlas name for background (e.g., 'auctionhouse-background-summarylist')
 ---@return Frame panel Styled panel frame
-function UI.CreateStyledPanel(parent, atlas)
+function LibAT.UI.CreateStyledPanel(parent, atlas)
 	local panel = CreateFrame('Frame', nil, parent)
 	panel.layoutType = 'InsetFrameTemplate'
 
@@ -304,7 +303,7 @@ end
 ---Create a scroll frame with MinimalScrollBar
 ---@param parent Frame Parent frame
 ---@return ScrollFrame scrollFrame Scroll frame with attached scrollbar
-function UI.CreateScrollFrame(parent)
+function LibAT.UI.CreateScrollFrame(parent)
 	local scrollFrame = CreateFrame('ScrollFrame', nil, parent)
 
 	-- Create minimal scrollbar
@@ -320,8 +319,8 @@ end
 ---@param parent Frame Parent frame
 ---@return Frame scrollFrame The scroll frame
 ---@return Frame editBox The edit box
-function UI.CreateScrollableTextDisplay(parent)
-	local scrollFrame = UI.CreateScrollFrame(parent)
+function LibAT.UI.CreateScrollableTextDisplay(parent)
+	local scrollFrame = LibAT.UI.CreateScrollFrame(parent)
 
 	-- Create the text display area
 	local editBox = CreateFrame('EditBox', nil, scrollFrame)
@@ -357,7 +356,7 @@ end
 ---@param text string Label text
 ---@param fontObject? string Optional font object name (default 'GameFontNormalSmall')
 ---@return FontString label Font string
-function UI.CreateLabel(parent, text, fontObject)
+function LibAT.UI.CreateLabel(parent, text, fontObject)
 	fontObject = fontObject or 'GameFontNormalSmall'
 	local label = parent:CreateFontString(nil, 'OVERLAY', fontObject)
 	label:SetText(text)
@@ -368,7 +367,7 @@ end
 ---@param parent Frame Parent frame
 ---@param text string Header text
 ---@return FontString header Header font string
-function UI.CreateHeader(parent, text)
+function LibAT.UI.CreateHeader(parent, text)
 	local header = parent:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
 	header:SetText(text)
 	header:SetTextColor(1, 0.82, 0) -- Gold color

@@ -1,7 +1,5 @@
 ---@class LibAT
 local LibAT = LibAT
----@class LibAT.UI
-LibAT.UI = LibAT.UI
 
 ----------------------------------------------------------------------------------------------------
 -- Navigation Tree Data Structures
