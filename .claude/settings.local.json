@@ -1,7 +1,14 @@
 {
   "permissions": {
-    "allow": ["Bash", "Read"],
+    "allow": ["Bash", "Bash*", "Bash(dir:*)", "Read", "Read*", "Read(*)"],
     "deny": [],
-    "ask": []
-  }
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\jerem\\Syncthing\\WoW\\AppData\\_retail_\\Interface\\Addons",
+      "C:\\Users\\jerem\\Syncthing\\WOW\\MyCode",
+      "C:\\Users\\jerem\\Syncthing\\WOW\\WOWUICode",
+      "C:\\Users\\jerem\\OneDrive\\WoW\\Examples"
+    ]
+  },
+  "includeCoAuthoredBy": false
 }
