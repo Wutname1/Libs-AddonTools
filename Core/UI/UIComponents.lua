@@ -344,6 +344,60 @@ function LibAT.UI.CreateScrollableTextDisplay(parent)
 	return scrollFrame, editBox
 end
 
+---Create a multiline text box with convenience methods (enhanced scrollable text)
+---@param parent Frame Parent frame
+---@param width number Box width
+---@param height number Box height
+---@param text? string Optional initial text
+---@return Frame scrollFrame The scroll frame container with convenience methods
+function LibAT.UI.CreateMultiLineBox(parent, width, height, text)
+	local scrollFrame, editBox = LibAT.UI.CreateScrollableTextDisplay(parent)
+	scrollFrame:SetSize(width, height)
+
+	if text then
+		editBox:SetText(text)
+	end
+
+	-- Add convenience methods to scrollFrame for easier usage
+	---Set the text content
+	---@param value string Text to set
+	function scrollFrame:SetValue(value)
+		editBox:SetText(value or '')
+	end
+
+	---Get the text content
+	---@return string text Current text
+	function scrollFrame:GetValue()
+		return editBox:GetText()
+	end
+
+	---Set read-only mode
+	---@param readonly boolean True to make read-only
+	function scrollFrame:SetReadOnly(readonly)
+		editBox:SetEnabled(not readonly)
+		if readonly then
+			editBox:SetTextColor(0.7, 0.7, 0.7)
+		else
+			editBox:SetTextColor(1, 1, 1)
+		end
+	end
+
+	---Highlight all text
+	function scrollFrame:HighlightText()
+		editBox:HighlightText()
+	end
+
+	---Set focus to the editbox
+	function scrollFrame:SetFocus()
+		editBox:SetFocus()
+	end
+
+	-- Expose editBox for direct access if needed
+	scrollFrame.editBox = editBox
+
+	return scrollFrame
+end
+
 ----------------------------------------------------------------------------------------------------
 -- Text Components
 ----------------------------------------------------------------------------------------------------

@@ -40,6 +40,10 @@ Locales\enUS.lua
 Core\UI\UIComponents.lua
 Core\UI\BaseWindow.lua
 Core\UI\NavigationTree.lua
+Core\UI\Radio.lua
+Core\UI\ProgressBar.lua
+Core\UI\Slider.lua
+Core\UI\NumericBox.lua
 
 # Systems
 Systems\Logger\Logger.lua
