@@ -750,9 +750,6 @@ function ProfileManager:Initialize()
 			ProfileManager:ToggleWindow()
 		end
 	end
-
-	LibAT:Print('Profile Manager initialized - Use /profiles to open')
-	LibAT:Print('Addons can register with: LibAT.ProfileManager:RegisterAddon({name = "MyAddon", db = MyAddonDB})')
 end
 
 -- Auto-initialize when loaded

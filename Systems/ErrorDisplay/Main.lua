@@ -200,8 +200,6 @@ function ErrorDisplay:Initialize()
 			end
 		)
 	end
-
-	print('LibAT Error Display system initialized')
 end
 
 -- Expose global functions for external access

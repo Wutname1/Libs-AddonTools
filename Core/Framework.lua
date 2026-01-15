@@ -141,7 +141,6 @@ function LibAT:RegisterSystem(name, system)
 		return
 	end
 	self.Systems[name] = system
-	self:Print(string.format('Registered system: %s', name))
 end
 
 ---Initialize the LibAT framework
