@@ -111,7 +111,11 @@ local function createButton(parent, text, id)
 	button:SetNormalAtlas('auctionhouse-nav-button')
 	button:SetHighlightAtlas('auctionhouse-nav-button-highlight')
 	button:SetPushedAtlas('auctionhouse-nav-button-select')
-	button:SetDisabledAtlas('UI-CastingBar-TextBox')
+	if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+		button:SetDisabledAtlas('UI-CastingBar-TextBox')
+	else
+		button:SetDisabledAtlas('auctionhouse-nav-button')
+	end
 
 	-- This is the key technique: texture coordinate manipulation for tab effect
 	local normalTexture = button:GetNormalTexture()
