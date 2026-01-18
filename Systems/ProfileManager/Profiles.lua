@@ -69,7 +69,7 @@ function ProfileManager:RegisterAddon(config)
 		BuildNavigationTree()
 	end
 
-	LibAT:Print('Registered addon "' .. config.name .. '" with ProfileManager (ID: ' .. addonId .. ')')
+	LibAT:Debug('Registered addon "' .. config.name .. '" with ProfileManager (ID: ' .. addonId .. ')')
 	return addonId
 end
 
@@ -89,7 +89,7 @@ function ProfileManager:UnregisterAddon(addonId)
 		BuildNavigationTree()
 	end
 
-	LibAT:Print('Unregistered addon "' .. addonName .. '" from ProfileManager')
+	LibAT:Debug('Unregistered addon "' .. addonName .. '" from ProfileManager')
 end
 
 ---Get all registered addons
@@ -750,6 +750,9 @@ function ProfileManager:Initialize()
 			ProfileManager:ToggleWindow()
 		end
 	end
+
+	LibAT:Debug('Profile Manager initialized - Use /profiles to open')
+	LibAT:Debug('Addons can register with: LibAT.ProfileManager:RegisterAddon({name = "MyAddon", db = MyAddonDB})')
 end
 
 -- Auto-initialize when loaded
