@@ -26,7 +26,7 @@ function LibAT.UI.CreateProgressBar(parent, width, height)
 	-- Border using NineSlice for clean edges
 	bar.Border = CreateFrame('Frame', nil, bar, 'NineSlicePanelTemplate')
 	bar.Border:SetAllPoints()
-	NineSliceUtil.ApplyUniqueCornersLayout(bar.Border.NineSlice, 'NineSliceLayout-Thin')
+	NineSliceUtil.ApplyUniqueCornersLayout(bar.Border, 'NineSliceLayout-Thin')
 
 	-- Optional text display
 	bar.text = bar:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')

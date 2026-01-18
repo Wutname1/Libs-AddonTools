@@ -69,6 +69,11 @@ function LibAT.UI.CreateWindow(config)
 	-- Set title
 	window:SetTitle(config.title)
 
+	-- Add closeBtn reference for compatibility (ButtonFrameTemplate provides CloseButton)
+	if window.CloseButton then
+		window.closeBtn = window.CloseButton
+	end
+
 	-- Store configuration
 	window.config = config
 
