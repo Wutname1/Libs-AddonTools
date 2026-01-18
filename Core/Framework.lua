@@ -187,39 +187,77 @@ SLASH_LIBAT1 = '/libat'
 SlashCmdList['LIBAT'] = function(msg)
 	local args = {strsplit(' ', msg)}
 	local command = args[1] and args[1]:lower() or ''
+	local subcommand = args[2] and args[2]:lower() or ''
 
 	if command == 'debug' then
 		LibAT.DebugMode = not LibAT.DebugMode
 		LibAT:Print('Debug mode:', LibAT.DebugMode and '|cff00ff00Enabled|r' or '|cffff0000Disabled|r')
 	elseif command == 'errors' or command == 'error' then
-		if LibAT.ErrorDisplay then
-			LibAT.ErrorDisplay.BugWindow:OpenErrorWindow()
-		elseif _G.LibATErrorDisplay then
-			_G.LibATErrorDisplay.BugWindow:OpenErrorWindow()
+		-- Default action: show errors (or handle subcommands if added later)
+		if subcommand == 'show' or subcommand == '' then
+			if LibAT.ErrorDisplay then
+				LibAT.ErrorDisplay.BugWindow:OpenErrorWindow()
+			elseif _G.LibATErrorDisplay then
+				_G.LibATErrorDisplay.BugWindow:OpenErrorWindow()
+			else
+				LibAT:Print('Error Display system not available')
+			end
 		else
-			LibAT:Print('Error Display system not available')
+			LibAT:Print('Unknown errors subcommand: ' .. subcommand)
+			LibAT:Print('Available: show')
 		end
 	elseif command == 'profiles' or command == 'profile' then
-		if LibAT.ProfileManager then
-			LibAT.ProfileManager:ImportUI()
+		-- Default action: open profile manager (or handle subcommands if added later)
+		if subcommand == 'show' or subcommand == '' then
+			if LibAT.ProfileManager then
+				LibAT.ProfileManager:ToggleWindow()
+			else
+				LibAT:Print('Profile Manager system not available')
+			end
 		else
-			LibAT:Print('Profile Manager system not available')
+			LibAT:Print('Unknown profiles subcommand: ' .. subcommand)
+			LibAT:Print('Available: show')
 		end
 	elseif command == 'logs' or command == 'log' then
-		if LibAT.Logger then
-			LibAT.Logger.ToggleWindow()
+		-- Default action: toggle logs (or handle subcommands if added later)
+		if subcommand == 'show' or subcommand == 'toggle' or subcommand == '' then
+			if LibAT.Logger then
+				LibAT.Logger.ToggleWindow()
+			else
+				LibAT:Print('Logger system not available')
+			end
 		else
-			LibAT:Print('Logger system not available')
+			LibAT:Print('Unknown logs subcommand: ' .. subcommand)
+			LibAT:Print('Available: show, toggle')
 		end
 	else
 		LibAT:Print('LibAT Commands:')
 		LibAT:Print('  /libat debug - Toggle debug mode (shows initialization messages)')
-		LibAT:Print('  /libat errors - Open error display window')
-		LibAT:Print('  /libat profiles - Open profile manager')
-		LibAT:Print('  /libat logs - Open logger window')
-		LibAT:Print('  /libatlogs - Toggle logger (direct command)')
-		LibAT:Print('  /libatprofiles - Open profile manager (direct command)')
+		LibAT:Print('  /libat errors [show] - Open error display window')
+		LibAT:Print('  /libat profiles [show] - Open profile manager')
+		LibAT:Print('  /libat logs [show|toggle] - Toggle logger window')
+		LibAT:Print(' ')
+		LibAT:Print('Shortcuts:')
+		LibAT:Print('  /errors - Open error display')
+		LibAT:Print('  /logs - Toggle logger')
+		LibAT:Print('  /profiles - Open profile manager')
 	end
+end
+
+-- Shortcut aliases
+SLASH_ERRORS1 = '/errors'
+SlashCmdList['ERRORS'] = function(msg)
+	SlashCmdList['LIBAT']('errors ' .. (msg or ''))
+end
+
+SLASH_LOGS1 = '/logs'
+SlashCmdList['LOGS'] = function(msg)
+	SlashCmdList['LIBAT']('logs ' .. (msg or ''))
+end
+
+SLASH_PROFILES1 = '/profiles'
+SlashCmdList['PROFILES'] = function(msg)
+	SlashCmdList['LIBAT']('profiles ' .. (msg or ''))
 end
 
 SLASH_RL1 = '/rl'
