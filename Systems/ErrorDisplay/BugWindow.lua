@@ -12,7 +12,7 @@ local L = {
 	['Ignored Errors'] = 'Ignored Errors',
 	['< Previous'] = '< Previous',
 	['Next >'] = 'Next >',
-	['Easy Copy All'] = 'Easy Copy All',
+	['Show All'] = 'Show All',
 	['Clear all errors'] = 'Clear all errors',
 	['Clear Ignored'] = 'Clear Ignored',
 	['Ignore'] = 'Ignore',
@@ -341,7 +341,7 @@ function ErrorDisplay.BugWindow.Create()
 		end
 	)
 
-	window.Buttons.CopyAll = createButton(window, L['Easy Copy All'])
+	window.Buttons.CopyAll = createButton(window, L['Show All'])
 	window.Buttons.CopyAll:SetPoint('TOP', innerFrame, 'BOTTOM', 0, -7)
 	window.Buttons.CopyAll:SetScript(
 		'OnClick',
