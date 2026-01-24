@@ -99,12 +99,19 @@ end
 ---@param addonId string The unique ID of the addon
 ---@param namespace string|nil Optional specific namespace to export
 function ProfileManager:ShowExport(addonId, namespace)
+	if logger then
+		logger.debug('ShowExport called for addonId: ' .. tostring(addonId))
+	end
+
 	if not registeredAddons[addonId] then
 		LibAT:Print('|cffff0000Error:|r Addon with ID "' .. addonId .. '" is not registered')
 		return
 	end
 
 	if not window then
+		if logger then
+			logger.debug('Window does not exist, creating...')
+		end
 		CreateWindow()
 		if not window then
 			if logger then
@@ -112,12 +119,19 @@ function ProfileManager:ShowExport(addonId, namespace)
 			end
 			return
 		end
+		if logger then
+			logger.debug('Window created successfully')
+		end
 	end
 
 	-- Set mode and active addon
 	window.mode = 'export'
 	window.activeAddonId = addonId
 	window.activeNamespace = namespace
+
+	if logger then
+		logger.debug('Calling UpdateWindowForMode()')
+	end
 
 	-- Build navigation key
 	local navKey = 'Addons.' .. addonId .. '.Export'
@@ -132,6 +146,10 @@ function ProfileManager:ShowExport(addonId, namespace)
 	end
 
 	UpdateWindowForMode()
+
+	if logger then
+		logger.debug('ShowExport completed, window visibility: ' .. tostring(window:IsVisible()))
+	end
 end
 
 ---Navigate to a specific addon in import mode
@@ -408,12 +426,27 @@ local function UpdateWindowForMode()
 end
 
 local function CreateWindow()
+	if logger then
+		logger.debug('CreateWindow called')
+	end
+
 	-- Ensure UI is available
-	if not LibAT.UI or not LibAT.UI.CreateWindow then
+	if not LibAT.UI then
 		if logger then
-			logger.error('LibAT.UI is not available - cannot create ProfileManager window')
+			logger.error('LibAT.UI table does not exist')
 		end
 		return
+	end
+
+	if not LibAT.UI.CreateWindow then
+		if logger then
+			logger.error('LibAT.UI.CreateWindow function does not exist')
+		end
+		return
+	end
+
+	if logger then
+		logger.debug('Creating window with LibAT.UI.CreateWindow')
 	end
 
 	-- Create base window using LibAT.UI
@@ -424,6 +457,18 @@ local function CreateWindow()
 		height = 538,
 		portrait = 'Interface\\AddOns\\Libs-AddonTools\\Logo-Icon',
 	})
+
+	if not window then
+		if logger then
+			logger.error('LibAT.UI.CreateWindow returned nil')
+		end
+		return
+	end
+
+	if logger then
+		logger.debug('Window frame created successfully')
+	end
+
 	window.mode = 'import'
 	window.activeAddonId = nil -- Currently selected addon ID
 	window.activeNamespace = nil -- Currently selected namespace (nil = all)
