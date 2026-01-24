@@ -1,11 +1,7 @@
 ---@class LibAT
 local LibAT = LibAT
 local logger = LibAT:NewModule('Handler.Logger') ---@class LibAT.LoggerInternal : AceAddon, AceEvent-3.0, AceConsole-3.0
-LibAT.Logger = logger
 logger.description = 'SpartanUI Logging System'
-
--- Use LibAT shared UI components
-local UI = LibAT.UI
 
 ----------------------------------------------------------------------------------------------------
 -- Type Definitions for Logger System
@@ -291,7 +287,7 @@ function CreateCategoryTree(sortedCategories)
 		if isCoreOnly then
 			-- Create a directly selectable button (top-level category style, but selectable)
 			local coreSubCategory = categoryData.subCategories['Core']
-			local categoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, nil)
+			local categoryButton = LibAT.UI.CreateFilterButton(LogWindow.ModuleTree, nil)
 			categoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
 			local categoryInfo = {
@@ -301,7 +297,7 @@ function CreateCategoryTree(sortedCategories)
 				isToken = categoryData.isAddonCategory,
 				selected = (ActiveModule == coreSubCategory.sourceName),
 			}
-			UI.SetupFilterButton(categoryButton, categoryInfo)
+			LibAT.UI.SetupFilterButton(categoryButton, categoryInfo)
 
 			-- No expand/collapse indicator for core-only categories
 
@@ -332,7 +328,7 @@ function CreateCategoryTree(sortedCategories)
 			yOffset = yOffset - (buttonHeight + 1)
 		else
 			-- Create expandable category button (has multiple subcategories)
-			local categoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, 'LibAT_CategoryButton_' .. categoryName)
+			local categoryButton = LibAT.UI.CreateFilterButton(LogWindow.ModuleTree, 'LibAT_CategoryButton_' .. categoryName)
 			categoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
 			-- Set up category button using Blizzard's helper function
@@ -343,7 +339,7 @@ function CreateCategoryTree(sortedCategories)
 				isToken = categoryData.isAddonCategory, -- Use isToken for external addons (matches Blizzard's pattern)
 				selected = false,
 			}
-			UI.SetupFilterButton(categoryButton, categoryInfo)
+			LibAT.UI.SetupFilterButton(categoryButton, categoryInfo)
 
 			-- Add expand/collapse indicator
 			categoryButton.indicator = categoryButton:CreateTexture(nil, 'OVERLAY')
@@ -394,7 +390,7 @@ function CreateCategoryTree(sortedCategories)
 				local subCategoryData = categoryData.subCategories[subCategoryName]
 
 				-- Create subCategory button using the proper template
-				local subCategoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, nil)
+				local subCategoryButton = LibAT.UI.CreateFilterButton(LogWindow.ModuleTree, nil)
 				subCategoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
 				-- Set up subCategory button using Blizzard's helper function
@@ -404,7 +400,7 @@ function CreateCategoryTree(sortedCategories)
 					subCategoryIndex = subCategoryName,
 					selected = (ActiveModule == (subCategoryData.sourceName or subCategoryName)),
 				}
-				UI.SetupFilterButton(subCategoryButton, subCategoryInfo) -- If this subCategory has subSubCategories, add expand/collapse indicator
+				LibAT.UI.SetupFilterButton(subCategoryButton, subCategoryInfo) -- If this subCategory has subSubCategories, add expand/collapse indicator
 				if subCategoryData.subSubCategories and next(subCategoryData.subSubCategories) then
 					subCategoryButton.indicator = subCategoryButton:CreateTexture(nil, 'OVERLAY')
 					subCategoryButton.indicator:SetSize(12, 12)
@@ -462,7 +458,7 @@ function CreateCategoryTree(sortedCategories)
 						local subSubCategoryData = subCategoryData.subSubCategories[subSubCategoryName]
 
 						-- Create subSubCategory button using the proper template
-						local subSubCategoryButton = UI.CreateFilterButton(LogWindow.ModuleTree, nil)
+						local subSubCategoryButton = LibAT.UI.CreateFilterButton(LogWindow.ModuleTree, nil)
 						subSubCategoryButton:SetPoint('TOPLEFT', LogWindow.ModuleTree, 'TOPLEFT', 3, yOffset)
 
 						-- Set up subSubCategory button using Blizzard's helper function
@@ -472,7 +468,7 @@ function CreateCategoryTree(sortedCategories)
 							subSubCategoryIndex = subSubCategoryName,
 							selected = (ActiveModule == subSubCategoryData.sourceName),
 						}
-						UI.SetupFilterButton(subSubCategoryButton, subSubCategoryInfo) -- Standard hover effects
+						LibAT.UI.SetupFilterButton(subSubCategoryButton, subSubCategoryInfo) -- Standard hover effects
 						subSubCategoryButton:SetScript('OnEnter', function(self)
 							self.HighlightTexture:Show()
 						end)
@@ -514,7 +510,7 @@ local function CreateLogWindow()
 	end
 
 	-- Create base window using LibAT.UI
-	LogWindow = UI.CreateWindow({
+	LogWindow = LibAT.UI.CreateWindow({
 		name = 'LibAT_LogWindow',
 		title = '|cffffffffSpartan|cffe21f1fUI|r Logging',
 		width = 800,
@@ -523,7 +519,7 @@ local function CreateLogWindow()
 	})
 
 	-- Create control frame (top bar for search/filters)
-	LogWindow.ControlFrame = UI.CreateControlFrame(LogWindow)
+	LogWindow.ControlFrame = LibAT.UI.CreateControlFrame(LogWindow)
 
 	-- Create header anchor (slightly offset for controls)
 	LogWindow.HeaderAnchor = CreateFrame('Frame', nil, LogWindow)
@@ -532,7 +528,7 @@ local function CreateLogWindow()
 	LogWindow.HeaderAnchor:SetHeight(28)
 
 	-- Search all modules checkbox (leftmost)
-	LogWindow.SearchAllModules = UI.CreateCheckbox(LogWindow.HeaderAnchor, 'Search All Modules')
+	LogWindow.SearchAllModules = LibAT.UI.CreateCheckbox(LogWindow.HeaderAnchor, 'Search All Modules')
 	LogWindow.SearchAllModules:SetPoint('LEFT', LogWindow.HeaderAnchor, 'LEFT', 0, 0)
 	LogWindow.SearchAllModules:SetScript('OnClick', function(self)
 		SearchAllModules = self:GetChecked()
@@ -541,7 +537,7 @@ local function CreateLogWindow()
 	LogWindow.SearchAllModulesLabel = LogWindow.SearchAllModules.Label
 
 	-- Search box positioned after checkbox
-	LogWindow.SearchBox = UI.CreateSearchBox(LogWindow.HeaderAnchor, 241)
+	LogWindow.SearchBox = LibAT.UI.CreateSearchBox(LogWindow.HeaderAnchor, 241)
 	LogWindow.SearchBox:SetPoint('LEFT', LogWindow.SearchAllModulesLabel, 'RIGHT', 10, 0)
 	LogWindow.SearchBox:SetScript('OnTextChanged', function(self)
 		CurrentSearchTerm = self:GetText()
@@ -555,14 +551,15 @@ local function CreateLogWindow()
 	end)
 
 	-- Settings button (workshop icon, positioned at right)
-	LogWindow.OpenSettings = UI.CreateIconButton(LogWindow.HeaderAnchor, 'Warfronts-BaseMapIcons-Empty-Workshop', 'Warfronts-BaseMapIcons-Alliance-Workshop', 'Warfronts-BaseMapIcons-Horde-Workshop')
+	LogWindow.OpenSettings =
+		LibAT.UI.CreateIconButton(LogWindow.HeaderAnchor, 'Warfronts-BaseMapIcons-Empty-Workshop', 'Warfronts-BaseMapIcons-Alliance-Workshop', 'Warfronts-BaseMapIcons-Horde-Workshop')
 	LogWindow.OpenSettings:SetPoint('RIGHT', LogWindow.HeaderAnchor, 'RIGHT', 0, 0)
 	LogWindow.OpenSettings:SetScript('OnClick', function()
 		LibAT.Options:ToggleOptions({ 'Help', 'Logging' })
 	end)
 
 	-- Logging Level dropdown positioned before settings button
-	LogWindow.LoggingLevelButton = UI.CreateDropdown(LogWindow.HeaderAnchor, 'Logging Level', 120, 22)
+	LogWindow.LoggingLevelButton = LibAT.UI.CreateDropdown(LogWindow.HeaderAnchor, 'Logging Level', 120, 22)
 	LogWindow.LoggingLevelButton:SetPoint('RIGHT', LogWindow.OpenSettings, 'LEFT', -10, 0)
 
 	-- Set initial dropdown text based on current global level
@@ -572,10 +569,10 @@ local function CreateLogWindow()
 	end
 
 	-- Create main content area
-	LogWindow.MainContent = UI.CreateContentFrame(LogWindow, LogWindow.ControlFrame)
+	LogWindow.MainContent = LibAT.UI.CreateContentFrame(LogWindow, LogWindow.ControlFrame)
 
 	-- Create left panel for module navigation
-	LogWindow.LeftPanel = UI.CreateLeftPanel(LogWindow.MainContent)
+	LogWindow.LeftPanel = LibAT.UI.CreateLeftPanel(LogWindow.MainContent)
 
 	-- Create scroll frame for module tree (will be populated by CreateLogSourceCategories)
 	LogWindow.ModuleScrollFrame = CreateFrame('ScrollFrame', 'LibAT_ModuleScrollFrame', LogWindow.LeftPanel)
@@ -593,17 +590,17 @@ local function CreateLogWindow()
 	LogWindow.ModuleTree:SetSize(160, 1)
 
 	-- Create right panel for log display
-	LogWindow.RightPanel = UI.CreateRightPanel(LogWindow.MainContent, LogWindow.LeftPanel)
+	LogWindow.RightPanel = LibAT.UI.CreateRightPanel(LogWindow.MainContent, LogWindow.LeftPanel)
 
 	-- Create scrollable text display for logs
-	LogWindow.TextPanel, LogWindow.EditBox = UI.CreateScrollableTextDisplay(LogWindow.RightPanel)
+	LogWindow.TextPanel, LogWindow.EditBox = LibAT.UI.CreateScrollableTextDisplay(LogWindow.RightPanel)
 	LogWindow.TextPanel:SetPoint('TOPLEFT', LogWindow.RightPanel, 'TOPLEFT', 6, -6)
 	LogWindow.TextPanel:SetPoint('BOTTOMRIGHT', LogWindow.RightPanel, 'BOTTOMRIGHT', 0, 2)
 	LogWindow.EditBox:SetWidth(LogWindow.TextPanel:GetWidth() - 20)
 	LogWindow.EditBox:SetText('No logs active - select a module from the left or enable "Search All Modules"')
 
 	-- Create action buttons at bottom
-	local actionButtons = UI.CreateActionButtons(LogWindow, {
+	local actionButtons = LibAT.UI.CreateActionButtons(LogWindow, {
 		{
 			text = 'Clear',
 			width = 70,
@@ -623,14 +620,14 @@ local function CreateLogWindow()
 	LogWindow.ExportButton = actionButtons[2]
 
 	-- Reload UI button positioned in bottom left
-	LogWindow.ReloadButton = UI.CreateButton(LogWindow, 80, 22, 'Reload UI')
+	LogWindow.ReloadButton = LibAT.UI.CreateButton(LogWindow, 80, 22, 'Reload UI')
 	LogWindow.ReloadButton:SetPoint('BOTTOMLEFT', LogWindow, 'BOTTOMLEFT', 3, 4)
 	LogWindow.ReloadButton:SetScript('OnClick', function()
 		LibAT:SafeReloadUI()
 	end)
 
 	-- Auto-scroll checkbox centered under right panel
-	LogWindow.AutoScroll = UI.CreateCheckbox(LogWindow, 'Auto-scroll')
+	LogWindow.AutoScroll = LibAT.UI.CreateCheckbox(LogWindow, 'Auto-scroll')
 	LogWindow.AutoScroll:SetPoint('CENTER', LogWindow.RightPanel, 'BOTTOM', 0, -15)
 	LogWindow.AutoScroll:SetChecked(AutoScrollEnabled)
 	LogWindow.AutoScrollLabel = LogWindow.AutoScroll.Label
@@ -1651,7 +1648,7 @@ function logger:OnEnable()
 	end
 
 	-- Expose as public method for LibAT to use
-	logger.ToggleWindow = ToggleLogWindow
+	LibAT.Logger.ToggleWindow = ToggleLogWindow
 
 	-- Register direct WoW slash commands
 	SLASH_LibATLOGS1 = '/logs'
@@ -1697,3 +1694,6 @@ end
 -- 		logger:UnregisterEvent('ADDON_LOADED')
 -- 	end
 -- end
+
+-- NOTE: LibAT.Logger is already initialized above (line 991) and has RegisterAddon added
+-- DO NOT reassign it here or we'll lose the RegisterAddon function

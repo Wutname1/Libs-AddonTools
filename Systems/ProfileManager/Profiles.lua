@@ -5,12 +5,9 @@ if not LibAT then
 end
 
 local ProfileManager = {}
-LibAT.ProfileManager = ProfileManager
-
--- Use LibAT shared UI components
-local UI = LibAT.UI
 
 -- Core functionality
+local logger -- Will be initialized in Initialize()
 local window
 local namespaceblacklist = { 'LibDualSpec-1.0' }
 
@@ -109,6 +106,12 @@ function ProfileManager:ShowExport(addonId, namespace)
 
 	if not window then
 		CreateWindow()
+		if not window then
+			if logger then
+				logger.error('Failed to create ProfileManager window')
+			end
+			return
+		end
 	end
 
 	-- Set mode and active addon
@@ -142,6 +145,12 @@ function ProfileManager:ShowImport(addonId, namespace)
 
 	if not window then
 		CreateWindow()
+		if not window then
+			if logger then
+				logger.error('Failed to create ProfileManager window')
+			end
+			return
+		end
 	end
 
 	-- Set mode and active addon
@@ -347,7 +356,7 @@ local function BuildNavigationTree()
 
 	-- Update navigation tree
 	window.NavTree.config.categories = allCategories
-	UI.BuildNavigationTree(window.NavTree)
+	LibAT.UI.BuildNavigationTree(window.NavTree)
 end
 
 local function UpdateWindowForMode()
@@ -392,15 +401,23 @@ local function UpdateWindowForMode()
 			navKey = navKey .. '.ALL'
 		end
 		window.NavTree.config.activeKey = navKey
-		UI.BuildNavigationTree(window.NavTree)
+		LibAT.UI.BuildNavigationTree(window.NavTree)
 	end
 
 	window:Show()
 end
 
 local function CreateWindow()
+	-- Ensure UI is available
+	if not LibAT.UI or not LibAT.UI.CreateWindow then
+		if logger then
+			logger.error('LibAT.UI is not available - cannot create ProfileManager window')
+		end
+		return
+	end
+
 	-- Create base window using LibAT.UI
-	window = UI.CreateWindow({
+	window = LibAT.UI.CreateWindow({
 		name = 'LibAT_ProfileWindow',
 		title = '|cffffffffLib|cffe21f1fAT|r Profile Manager',
 		width = 800,
@@ -412,14 +429,14 @@ local function CreateWindow()
 	window.activeNamespace = nil -- Currently selected namespace (nil = all)
 
 	-- Create control frame (top bar)
-	window.ControlFrame = UI.CreateControlFrame(window)
+	window.ControlFrame = LibAT.UI.CreateControlFrame(window)
 
 	-- Add mode label (shows current mode)
-	window.ModeLabel = UI.CreateHeader(window.ControlFrame, 'Import Mode')
+	window.ModeLabel = LibAT.UI.CreateHeader(window.ControlFrame, 'Import Mode')
 	window.ModeLabel:SetPoint('LEFT', window.ControlFrame, 'LEFT', 10, 0)
 
 	-- Add switch mode button
-	window.SwitchModeButton = UI.CreateButton(window.ControlFrame, 100, 22, 'Switch Mode')
+	window.SwitchModeButton = LibAT.UI.CreateButton(window.ControlFrame, 100, 22, 'Switch Mode')
 	window.SwitchModeButton:SetPoint('RIGHT', window.ControlFrame, 'RIGHT', -10, 0)
 	window.SwitchModeButton:SetScript('OnClick', function()
 		window.mode = window.mode == 'import' and 'export' or 'import'
@@ -427,13 +444,13 @@ local function CreateWindow()
 	end)
 
 	-- Create main content area
-	window.MainContent = UI.CreateContentFrame(window, window.ControlFrame)
+	window.MainContent = LibAT.UI.CreateContentFrame(window, window.ControlFrame)
 
 	-- Create left panel for navigation
-	window.LeftPanel = UI.CreateLeftPanel(window.MainContent)
+	window.LeftPanel = LibAT.UI.CreateLeftPanel(window.MainContent)
 
 	-- Initialize navigation tree with registered addons
-	window.NavTree = UI.CreateNavigationTree({
+	window.NavTree = LibAT.UI.CreateNavigationTree({
 		parent = window.LeftPanel,
 		categories = {},
 		activeKey = nil,
@@ -443,22 +460,22 @@ local function CreateWindow()
 	BuildNavigationTree()
 
 	-- Create right panel for content
-	window.RightPanel = UI.CreateRightPanel(window.MainContent, window.LeftPanel)
+	window.RightPanel = LibAT.UI.CreateRightPanel(window.MainContent, window.LeftPanel)
 
 	-- Add description header
-	window.Description = UI.CreateLabel(window.RightPanel, '', window.RightPanel:GetWidth() - 40)
+	window.Description = LibAT.UI.CreateLabel(window.RightPanel, '', window.RightPanel:GetWidth() - 40)
 	window.Description:SetPoint('TOP', window.RightPanel, 'TOP', 0, -10)
 	window.Description:SetJustifyH('CENTER')
 	window.Description:SetWordWrap(true)
 
 	-- Create scrollable text display for profile data
-	window.TextPanel, window.EditBox = UI.CreateScrollableTextDisplay(window.RightPanel)
+	window.TextPanel, window.EditBox = LibAT.UI.CreateScrollableTextDisplay(window.RightPanel)
 	window.TextPanel:SetPoint('TOPLEFT', window.Description, 'BOTTOMLEFT', 6, -10)
 	window.TextPanel:SetPoint('BOTTOMRIGHT', window.RightPanel, 'BOTTOMRIGHT', -6, 50)
 	window.EditBox:SetWidth(window.TextPanel:GetWidth() - 20)
 
 	-- Create action buttons
-	local actionButtons = UI.CreateActionButtons(window, {
+	local actionButtons = LibAT.UI.CreateActionButtons(window, {
 		{
 			text = 'Clear',
 			width = 70,
@@ -476,14 +493,14 @@ local function CreateWindow()
 	})
 
 	-- Import button (shown in import mode)
-	window.ImportButton = UI.CreateButton(window, 100, 22, 'Import')
+	window.ImportButton = LibAT.UI.CreateButton(window, 100, 22, 'Import')
 	window.ImportButton:SetPoint('RIGHT', actionButtons[1], 'LEFT', -5, 0)
 	window.ImportButton:SetScript('OnClick', function()
 		ProfileManager:DoImport()
 	end)
 
 	-- Export button (shown in export mode)
-	window.ExportButton = UI.CreateButton(window, 100, 22, 'Export')
+	window.ExportButton = LibAT.UI.CreateButton(window, 100, 22, 'Export')
 	window.ExportButton:SetPoint('RIGHT', actionButtons[1], 'LEFT', -5, 0)
 	window.ExportButton:SetScript('OnClick', function()
 		ProfileManager:DoExport()
@@ -700,6 +717,11 @@ end
 
 -- Register slash commands
 function ProfileManager:Initialize()
+	-- Initialize logger (now that Logger has finished loading)
+	if LibAT.Logger and LibAT.Logger.RegisterAddon then
+		logger = LibAT.Logger.RegisterAddon('ProfileManager')
+	end
+
 	-- Register with LibAT
 	LibAT:RegisterSystem('ProfileManager', self)
 
@@ -760,4 +782,8 @@ ProfileManager:Initialize()
 	-- Unregister when addon unloads (optional)
 	LibAT.ProfileManager:UnregisterAddon("spartanui")
 ]]
+
+-- Export ProfileManager to LibAT namespace (at end of file after all methods are defined)
+LibAT.ProfileManager = ProfileManager
+
 return ProfileManager
