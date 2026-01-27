@@ -111,11 +111,18 @@ function LibAT.Options:AddOptions(options, name, parent)
 			if parent then
 				-- First ensure parent exists by trying to create it
 				if not self.optionsTable[parent] then
-					-- Create a dummy parent category
+					-- Create a parent category with description
 					local parentOptions = {
 						type = 'group',
 						name = parent,
-						args = {},
+						args = {
+							Description = {
+								name = 'Shared tools and utilities used by SpartanUI and related addons.\n\nSelect a subcategory to configure specific systems.',
+								type = 'description',
+								order = 0,
+								fontSize = 'medium',
+							},
+						},
 					}
 					self.registry:RegisterOptionsTable(parent, parentOptions)
 					local frame, categoryID = self.dialog:AddToBlizOptions(parent, parent)

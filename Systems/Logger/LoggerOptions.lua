@@ -236,7 +236,7 @@ local function AddOptions()
 		LibAT.Logger.logger.info('Registering Logger options with ' .. tostring(#options.args) .. ' total options')
 	end
 
-	LibAT.Options:AddOptions(options, 'Logging', 'Help')
+	LibAT.Options:AddOptions(options, 'Logging', 'Libs-AddonTools')
 end
 
 -- Make AddOptions available to Logger.lua

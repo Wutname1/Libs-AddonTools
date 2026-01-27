@@ -156,9 +156,28 @@ function ErrorDisplay.Config:CreatePanel()
 	if InterfaceOptions_AddCategory then
 		InterfaceOptions_AddCategory(panel)
 	else
-		local category, layout = Settings.RegisterCanvasLayoutCategory(panel, 'LibAT Error Display')
-		Settings.RegisterAddOnCategory(category)
-		ErrorDisplay.settingsCategory = category
+		-- Check if Libs-AddonTools parent category exists, if not create it
+		local parentCategory = Settings.GetCategory('Libs-AddonTools')
+		if not parentCategory then
+			-- Create a placeholder parent frame
+			local parentPanel = CreateFrame('Frame')
+			parentPanel.name = 'Libs-AddonTools'
+			local parentTitle = parentPanel:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
+			parentTitle:SetPoint('TOPLEFT', 16, -16)
+			parentTitle:SetText('Libs-AddonTools')
+			local parentDesc = parentPanel:CreateFontString(nil, 'ARTWORK', 'GameFontHighlight')
+			parentDesc:SetPoint('TOPLEFT', parentTitle, 'BOTTOMLEFT', 0, -8)
+			parentDesc:SetWidth(600)
+			parentDesc:SetText('Shared tools and utilities used by SpartanUI and related addons.\n\nSelect a subcategory on the left to configure specific systems.')
+			parentDesc:SetJustifyH('LEFT')
+
+			parentCategory = Settings.RegisterCanvasLayoutCategory(parentPanel, 'Libs-AddonTools')
+			Settings.RegisterAddOnCategory(parentCategory)
+		end
+
+		-- Register this panel as a subcategory under Libs-AddonTools
+		local subcategory = Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, 'Error Display')
+		ErrorDisplay.settingsCategory = subcategory
 	end
 end
 
