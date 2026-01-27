@@ -141,10 +141,10 @@ local function AddOptions()
 			},
 			MaxLogHistory = {
 				name = 'Maximum Log History',
-				desc = 'Maximum number of log entries to keep per module.',
+				desc = 'Maximum number of log entries to keep per module. Higher values use more memory but preserve more log history.',
 				type = 'range',
-				min = 100,
-				max = 5000,
+				min = 1000,
+				max = 10000,
 				step = 100,
 				get = function(info)
 					return logger.DB.maxLogHistory
@@ -231,6 +231,11 @@ local function AddOptions()
 		end
 	end
 	logger.options = options
+
+	if LibAT.Logger and LibAT.Logger.logger then
+		LibAT.Logger.logger.info('Registering Logger options with ' .. tostring(#options.args) .. ' total options')
+	end
+
 	LibAT.Options:AddOptions(options, 'Logging', 'Help')
 end
 

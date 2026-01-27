@@ -90,6 +90,10 @@ function LibAT.Options:AddOptions(options, name, parent)
 	-- Store the options
 	self.optionsTable[name] = options
 
+	if LibAT.Logger and LibAT.Logger.logger then
+		LibAT.Logger.logger.debug('AddOptions called for: ' .. tostring(name) .. ' with parent: ' .. tostring(parent or 'none'))
+	end
+
 	-- Register with AceConfig if available
 	if self.registry and self.dialog then
 		self.registry:RegisterOptionsTable(name, options)
@@ -131,15 +135,33 @@ end
 function LibAT.Options:ToggleOptions(path)
 	self:Init()
 
-	if self.dialog then
-		if path and #path > 0 then
-			-- Open specific options page
-			Settings.OpenToCategory(path[#path])
+	if not self.dialog or not self.registry then
+		if LibAT.Logger and LibAT.Logger.logger then
+			LibAT.Logger.logger.error('AceConfig not available')
+		end
+		return
+	end
+
+	local targetName
+	if path and #path > 0 then
+		targetName = path[#path]
+	else
+		targetName = 'Libs-AddonTools'
+	end
+
+	if LibAT.Logger and LibAT.Logger.logger then
+		LibAT.Logger.logger.debug('Opening options panel: ' .. tostring(targetName))
+		-- Check if the options table exists
+		local registered = self.registry:GetOptionsTable(targetName)
+		if registered then
+			LibAT.Logger.logger.debug('Options table found for: ' .. targetName)
 		else
-			-- Open main LibAT options
-			Settings.OpenToCategory('Libs-AddonTools')
+			LibAT.Logger.logger.error('No options table registered for: ' .. targetName)
 		end
 	end
+
+	-- Open the AceConfig standalone frame
+	self.dialog:Open(targetName)
 end
 
 ---Register a system with LibAT
