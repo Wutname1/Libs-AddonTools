@@ -48,6 +48,7 @@ Core\UI\Radio.lua
 Core\UI\ProgressBar.lua
 Core\UI\Slider.lua
 Core\UI\NumericBox.lua
+Core\UI\InfoButton.lua
 
 # Systems
 # Logger System (split into 3 files for maintainability)
