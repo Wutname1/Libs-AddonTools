@@ -14,11 +14,16 @@ local function OnMouseDown(self, button)
 	local text = self.Text:GetText()
 	if button == 'RightButton' then
 		-- Copy to chat edit box
-		local editBox = ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow()
-		if editBox then
-			editBox:SetText(text)
-			editBox:HighlightText()
-			LibAT:Print('Copied to chat: |cff00ccff' .. tostring(text) .. '|r')
+		if ChatEdit_GetActiveWindow then
+			local editBox = ChatEdit_GetActiveWindow()
+			if editBox then
+				editBox:SetText(text)
+				LibAT:Print('Copied to chat: |cff00ccff' .. tostring(text) .. '|r')
+			else
+				LibAT:Print('No active chat edit box found. Click in chat first.')
+			end
+		else
+			LibAT:Print('ChatEdit_GetActiveWindow not available.')
 		end
 	elseif button == 'MiddleButton' then
 		-- Get the raw value from the attribute data
@@ -261,7 +266,10 @@ local function RegisterSlashCommands()
 
 		for i, frame in ipairs(frames) do
 			if frame and (not frame.IsVisible or frame:IsVisible() or showHidden) then
-				local name = frame:GetName() or 'Unnamed'
+				local name = 'Unnamed'
+				if frame.GetName then
+					name = frame:GetName() or 'Unnamed'
+				end
 				local objectType = 'Unknown'
 				if frame.GetObjectType then
 					objectType = frame:GetObjectType()
@@ -278,7 +286,10 @@ local function RegisterSlashCommands()
 					local regions = { frame:GetRegions() }
 					for j, region in ipairs(regions) do
 						if region then
-							local regionName = region:GetName() or 'Unnamed'
+							local regionName = 'Unnamed'
+							if region.GetName then
+								regionName = region:GetName() or 'Unnamed'
+							end
 							local regionType = 'Unknown'
 							if region.GetObjectType then
 								regionType = region:GetObjectType()
