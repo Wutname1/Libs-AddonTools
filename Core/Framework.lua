@@ -316,6 +316,13 @@ SlashCmdList['LIBAT'] = function(msg)
 		LibAT:Print('  /errors - Open error display')
 		LibAT:Print('  /logs - Toggle logger')
 		LibAT:Print('  /profiles - Open profile manager')
+		LibAT:Print(' ')
+		LibAT:Print('Developer Tools:')
+		LibAT:Print('  /frame <name> [true] - Inspect frame and set _G.FRAME')
+		LibAT:Print('  /getpoint <name> - Show frame anchor points')
+		LibAT:Print('  /texlist <name> - List frame textures')
+		LibAT:Print('  /framelist [options] - Enhanced frame stack at mouse')
+		LibAT:Print('  /devcon - Open developer console')
 	end
 end
 

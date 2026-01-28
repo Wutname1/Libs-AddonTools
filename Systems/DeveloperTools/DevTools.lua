@@ -1,0 +1,366 @@
+---@class LibAT
+local LibAT = _G.LibAT
+
+---@class LibAT.DevTools
+---@field Init fun(self: LibAT.DevTools) Initialize the Developer Tools system
+---@field RegisterSlashCommands fun(self: LibAT.DevTools) Register slash commands for developer tools
+---@field SetupTableInspectorHooks fun(self: LibAT.DevTools) Setup hooks for TableAttributeDisplay
+---@field UpdateTableInspectorLines fun(self: LibAT.DevTools) Update TableAttributeDisplay lines to add click handlers
+local DevTools = {}
+LibAT.DevTools = DevTools
+
+-- Logger instance
+---@type LibAT.Logger.AddonLogger?
+local logger
+
+---Initialize the Developer Tools system
+function DevTools:Init()
+	if LibAT.Logger then
+		logger = LibAT.Logger.RegisterAddon('DevTools')
+	end
+
+	self:RegisterSlashCommands()
+	self:SetupTableInspectorHooks()
+
+	if logger then
+		logger.info('Developer Tools initialized')
+	end
+end
+
+---Register slash commands for developer tools
+function DevTools:RegisterSlashCommands()
+	-- /devcon - Open developer console
+	SLASH_DEVCON1 = '/devcon'
+	SlashCmdList['DEVCON'] = function()
+		if _G.DeveloperConsole then
+			_G.DeveloperConsole:Toggle()
+		else
+			LibAT:Print('Developer Console is not available. Launch WoW with -console flag or use this command to open it without the flag.')
+		end
+	end
+
+	-- /frame [frameName] [tinspect] - Inspect a frame
+	SLASH_INSPECTFRAME1 = '/frame'
+	SlashCmdList['INSPECTFRAME'] = function(msg)
+		local args = { strsplit(' ', msg) }
+		local frameName = args[1]
+		local openInspector = args[2] and (args[2]:lower() == 'true' or args[2] == '1')
+
+		if not frameName or frameName == '' then
+			LibAT:Print('Usage: /frame <frameName> [true|1] - Set global FRAME variable and optionally open in TableAttributeDisplay')
+			return
+		end
+
+		local frame = _G[frameName]
+		if not frame then
+			LibAT:Print('Frame not found: ' .. frameName)
+			return
+		end
+
+		_G.FRAME = frame
+		LibAT:Print('Set |cff00ff00_G.FRAME|r to: |cff00ccff' .. frameName .. '|r')
+
+		if openInspector and _G.TableAttributeDisplay then
+			_G.TableAttributeDisplay:InspectTable(frame)
+			LibAT:Print('Opened in TableAttributeDisplay')
+		end
+	end
+
+	-- /getpoint [frameName] - Get frame positioning information
+	SLASH_GETPOINT1 = '/getpoint'
+	SlashCmdList['GETPOINT'] = function(msg)
+		local frameName = msg and msg:trim()
+
+		if not frameName or frameName == '' then
+			LibAT:Print('Usage: /getpoint <frameName> - Get frame positioning information')
+			return
+		end
+
+		local frame = _G[frameName]
+		if not frame then
+			LibAT:Print('Frame not found: ' .. frameName)
+			return
+		end
+
+		if not frame.GetPoint then
+			LibAT:Print('Object is not a frame: ' .. frameName)
+			return
+		end
+
+		local numPoints = frame:GetNumPoints()
+		if numPoints == 0 then
+			LibAT:Print(frameName .. ' has no anchor points')
+			return
+		end
+
+		LibAT:Print('Anchor points for |cff00ccff' .. frameName .. '|r:')
+		for i = 1, numPoints do
+			local point, relativeTo, relativePoint, xOffset, yOffset = frame:GetPoint(i)
+			local relativeToName = relativeTo and relativeTo:GetName() or 'UIParent'
+			LibAT:Print(
+				string.format(
+					'  %d: |cff00ff00%s|r to |cff00ccff%s|r |cff00ff00%s|r (%.2f, %.2f)',
+					i,
+					point,
+					relativeToName,
+					relativePoint,
+					xOffset or 0,
+					yOffset or 0
+				)
+			)
+		end
+	end
+
+	-- /texlist [frameName] - List all textures in a frame
+	SLASH_TEXLIST1 = '/texlist'
+	SlashCmdList['TEXLIST'] = function(msg)
+		local frameName = msg and msg:trim()
+
+		if not frameName or frameName == '' then
+			LibAT:Print('Usage: /texlist <frameName> - List all textures in a frame')
+			return
+		end
+
+		local frame = _G[frameName]
+		if not frame then
+			LibAT:Print('Frame not found: ' .. frameName)
+			return
+		end
+
+		local textures = {}
+		local regions = { frame:GetRegions() }
+
+		for _, region in ipairs(regions) do
+			if region:IsObjectType('Texture') then
+				local texturePath = region:GetTexture()
+				local drawLayer = region:GetDrawLayer()
+				table.insert(textures, {
+					path = texturePath or 'nil',
+					name = region:GetName() or 'Unnamed',
+					layer = drawLayer or 'ARTWORK',
+				})
+			end
+		end
+
+		if #textures == 0 then
+			LibAT:Print('No textures found in ' .. frameName)
+			return
+		end
+
+		LibAT:Print('Textures in |cff00ccff' .. frameName .. '|r:')
+		for i, tex in ipairs(textures) do
+			LibAT:Print(string.format('  %d: |cff00ff00%s|r - %s (|cffffcc00%s|r)', i, tex.name, tex.path, tex.layer))
+		end
+	end
+
+	-- /framelist [copyChat] [showHidden] [showRegions] [showAnchors] - Enhanced fstack
+	SLASH_FRAMELIST1 = '/framelist'
+	SlashCmdList['FRAMELIST'] = function(msg)
+		local args = { strsplit(' ', msg) }
+		local copyChat = args[1] and (args[1]:lower() == 'true' or args[1] == '1')
+		local showHidden = args[2] and (args[2]:lower() == 'true' or args[2] == '1')
+		local showRegions = args[3] and (args[3]:lower() == 'true' or args[3] == '1')
+		local showAnchors = args[4] and (args[4]:lower() == 'true' or args[4] == '1')
+
+		-- Get the frame stack at mouse position
+		local frames = { GetMouseFoci() }
+
+		if #frames == 0 then
+			LibAT:Print('No frames found under mouse cursor')
+			return
+		end
+
+		local output = {}
+		table.insert(output, '|cff00ff00Frame Stack:|r')
+
+		for i, frame in ipairs(frames) do
+			if frame and (not frame.IsVisible or frame:IsVisible() or showHidden) then
+				local name = frame:GetName() or 'Unnamed'
+				local objectType = 'Unknown'
+				if frame.GetObjectType then
+					objectType = frame:GetObjectType()
+				end
+				local visible = 'Unknown'
+				if frame.IsVisible then
+					visible = frame:IsVisible() and 'Visible' or 'Hidden'
+				end
+
+				table.insert(output, string.format('  %d. |cff00ccff%s|r (|cffffcc00%s|r) - %s', i, name, objectType, visible))
+
+				-- Show regions if requested
+				if showRegions and frame.GetRegions then
+					local regions = { frame:GetRegions() }
+					for j, region in ipairs(regions) do
+						if region then
+							local regionName = region:GetName() or 'Unnamed'
+							local regionType = 'Unknown'
+							if region.GetObjectType then
+								regionType = region:GetObjectType()
+							end
+							table.insert(output, string.format('     Region %d: |cffcccccc%s|r (|cffcccc00%s|r)', j, regionName, regionType))
+						end
+					end
+				end
+
+				-- Show anchors if requested
+				if showAnchors and frame.GetPoint then
+					local numPoints = 0
+					if frame.GetNumPoints then
+						numPoints = frame:GetNumPoints()
+					end
+					if numPoints > 0 then
+						for j = 1, numPoints do
+							local point, relativeTo, relativePoint, xOffset, yOffset = frame:GetPoint(j)
+							local relativeToName = relativeTo and (relativeTo:GetName() or 'UIParent') or 'UIParent'
+							table.insert(
+								output,
+								string.format(
+									'     Anchor %d: |cff00ff00%s|r to |cff00ccff%s|r |cff00ff00%s|r (%.2f, %.2f)',
+									j,
+									point,
+									relativeToName,
+									relativePoint,
+									xOffset or 0,
+									yOffset or 0
+								)
+							)
+						end
+					end
+				end
+			end
+		end
+
+		-- Output to chat or console
+		for _, line in ipairs(output) do
+			LibAT:Print(line)
+		end
+
+		if copyChat then
+			LibAT:Print('Use Ctrl+C to copy the output')
+		end
+	end
+end
+
+---Setup hooks for TableAttributeDisplay to add shift/middle/right-click functionality
+function DevTools:SetupTableInspectorHooks()
+	-- Wait for TableAttributeDisplay to be available
+	local function SetupHooks()
+		if not _G.TableAttributeDisplay then
+			return
+		end
+
+		-- Hook into TableInspectorMixin.RefreshAllData for /tinspect
+		if _G.TableInspectorMixin and _G.TableInspectorMixin.RefreshAllData then
+			hooksecurefunc(_G.TableInspectorMixin, 'RefreshAllData', function()
+				DevTools:UpdateTableInspectorLines()
+			end)
+		end
+
+		-- Hook into TableAttributeDisplay.dataProviders[2].RefreshData for fstack ctrl
+		if
+			_G.TableAttributeDisplay.dataProviders
+			and _G.TableAttributeDisplay.dataProviders[2]
+			and _G.TableAttributeDisplay.dataProviders[2].RefreshData
+		then
+			hooksecurefunc(_G.TableAttributeDisplay.dataProviders[2], 'RefreshData', function()
+				DevTools:UpdateTableInspectorLines()
+			end)
+		end
+
+		if logger then
+			logger.debug('TableAttributeDisplay hooks installed')
+		end
+	end
+
+	-- Try to setup immediately if available, otherwise wait for ADDON_LOADED
+	if _G.TableAttributeDisplay then
+		SetupHooks()
+	else
+		local frame = CreateFrame('Frame')
+		frame:RegisterEvent('ADDON_LOADED')
+		frame:SetScript('OnEvent', function(_, event, addonName)
+			if addonName == 'Blizzard_DebugTools' then
+				SetupHooks()
+				frame:UnregisterEvent('ADDON_LOADED')
+			end
+		end)
+	end
+end
+
+---Custom OnMouseDown handler for TableAttributeDisplay value buttons
+---@param self Button
+---@param button string Mouse button that was clicked
+local function OnMouseDown(self, button)
+	local text = self.Text:GetText()
+	if button == 'RightButton' then
+		-- Copy to chat edit box
+		local editBox = ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow()
+		if editBox then
+			editBox:SetText(text)
+			editBox:HighlightText()
+			LibAT:Print('Copied to chat: |cff00ccff' .. tostring(text) .. '|r')
+		end
+	elseif button == 'MiddleButton' then
+		-- Get the raw value from the attribute data
+		local parent = self:GetParent()
+		if parent and parent.GetAttributeData then
+			local attrData = parent:GetAttributeData()
+			if attrData and attrData.rawValue then
+				local rawData = attrData.rawValue
+				-- Check if it's a texture or frame
+				if type(rawData) == 'table' and rawData.IsObjectType then
+					if rawData:IsObjectType('Texture') then
+						_G.TEX = rawData
+						LibAT:Print('Set |cff00ff00_G.TEX|r to: |cff00ccff' .. tostring(text) .. '|r')
+					else
+						_G.FRAME = rawData
+						LibAT:Print('Set |cff00ff00_G.FRAME|r to: |cff00ccff' .. tostring(text) .. '|r')
+					end
+				end
+			end
+		end
+	else
+		-- Left-click or other buttons - use default handler
+		if _G.TableAttributeDisplayValueButton_OnMouseDown then
+			_G.TableAttributeDisplayValueButton_OnMouseDown(self)
+		end
+	end
+end
+
+---Update TableAttributeDisplay lines to add click handlers
+function DevTools:UpdateTableInspectorLines()
+	if not _G.TableAttributeDisplay then
+		return
+	end
+
+	local scrollFrame = _G.TableAttributeDisplay.LinesScrollFrame
+	if not scrollFrame or not scrollFrame.LinesContainer then
+		return
+	end
+
+	-- Get all children from the LinesContainer
+	local children = { scrollFrame.LinesContainer:GetChildren() }
+	for _, child in ipairs(children) do
+		if child.ValueButton and child.ValueButton:GetScript('OnMouseDown') ~= OnMouseDown then
+			child.ValueButton:SetScript('OnMouseDown', OnMouseDown)
+		end
+	end
+end
+
+-- Initialize when LibAT is ready
+if LibAT.Logger then
+	-- If Logger already exists, init immediately
+	DevTools:Init()
+else
+	-- Otherwise wait for it
+	local frame = CreateFrame('Frame')
+	frame:RegisterEvent('ADDON_LOADED')
+	frame:SetScript('OnEvent', function(_, event, addonName)
+		if addonName == 'Libs-AddonTools' then
+			if LibAT.Logger then
+				DevTools:Init()
+				frame:UnregisterEvent('ADDON_LOADED')
+			end
+		end
+	end)
+end
