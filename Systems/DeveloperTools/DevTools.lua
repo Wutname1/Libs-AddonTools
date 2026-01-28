@@ -13,17 +13,22 @@ local logger
 local function OnMouseDown(self, button)
 	local text = self.Text:GetText()
 	if button == 'RightButton' then
-		-- Copy to chat edit box
-		if ChatEdit_GetActiveWindow then
-			local editBox = ChatEdit_GetActiveWindow()
-			if editBox then
-				editBox:SetText(text)
-				LibAT:Print('Copied to chat: |cff00ccff' .. tostring(text) .. '|r')
-			else
-				LibAT:Print('No active chat edit box found. Click in chat first.')
+		-- Copy to chat edit box and show it
+		local editBox = ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow()
+		if not editBox then
+			-- No active window, use ChatFrame1EditBox as default
+			editBox = ChatFrame1EditBox
+		end
+
+		if editBox then
+			-- Show/activate the chat edit box if not shown
+			if not editBox:IsShown() and ChatEdit_ActivateChat then
+				ChatEdit_ActivateChat(editBox)
 			end
+			editBox:SetText(text)
+			LibAT:Print('Copied to chat: |cff00ccff' .. tostring(text) .. '|r')
 		else
-			LibAT:Print('ChatEdit_GetActiveWindow not available.')
+			LibAT:Print('Chat edit box not available.')
 		end
 	elseif button == 'MiddleButton' then
 		-- Get the raw value from the attribute data
@@ -88,11 +93,7 @@ local function SetupTableInspectorHooks()
 		end
 
 		-- Hook into TableAttributeDisplay.dataProviders[2].RefreshData for fstack ctrl
-		if
-			_G.TableAttributeDisplay.dataProviders
-			and _G.TableAttributeDisplay.dataProviders[2]
-			and _G.TableAttributeDisplay.dataProviders[2].RefreshData
-		then
+		if _G.TableAttributeDisplay.dataProviders and _G.TableAttributeDisplay.dataProviders[2] and _G.TableAttributeDisplay.dataProviders[2].RefreshData then
 			hooksecurefunc(_G.TableAttributeDisplay.dataProviders[2], 'RefreshData', function()
 				UpdateTableInspectorLines()
 			end)
@@ -188,17 +189,7 @@ local function RegisterSlashCommands()
 		for i = 1, numPoints do
 			local point, relativeTo, relativePoint, xOffset, yOffset = frame:GetPoint(i)
 			local relativeToName = relativeTo and relativeTo:GetName() or 'UIParent'
-			LibAT:Print(
-				string.format(
-					'  %d: |cff00ff00%s|r to |cff00ccff%s|r |cff00ff00%s|r (%.2f, %.2f)',
-					i,
-					point,
-					relativeToName,
-					relativePoint,
-					xOffset or 0,
-					yOffset or 0
-				)
-			)
+			LibAT:Print(string.format('  %d: |cff00ff00%s|r to |cff00ccff%s|r |cff00ff00%s|r (%.2f, %.2f)', i, point, relativeToName, relativePoint, xOffset or 0, yOffset or 0))
 		end
 	end
 
@@ -311,15 +302,7 @@ local function RegisterSlashCommands()
 							local relativeToName = relativeTo and (relativeTo:GetName() or 'UIParent') or 'UIParent'
 							table.insert(
 								output,
-								string.format(
-									'     Anchor %d: |cff00ff00%s|r to |cff00ccff%s|r |cff00ff00%s|r (%.2f, %.2f)',
-									j,
-									point,
-									relativeToName,
-									relativePoint,
-									xOffset or 0,
-									yOffset or 0
-								)
+								string.format('     Anchor %d: |cff00ff00%s|r to |cff00ccff%s|r |cff00ff00%s|r (%.2f, %.2f)', j, point, relativeToName, relativePoint, xOffset or 0, yOffset or 0)
 							)
 						end
 					end
