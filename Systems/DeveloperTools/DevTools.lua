@@ -1,34 +1,120 @@
 ---@class LibAT
-local LibAT = _G.LibAT
-
----@class LibAT.DevTools
----@field Init fun(self: LibAT.DevTools) Initialize the Developer Tools system
----@field RegisterSlashCommands fun(self: LibAT.DevTools) Register slash commands for developer tools
----@field SetupTableInspectorHooks fun(self: LibAT.DevTools) Setup hooks for TableAttributeDisplay
----@field UpdateTableInspectorLines fun(self: LibAT.DevTools) Update TableAttributeDisplay lines to add click handlers
-local DevTools = {}
-LibAT.DevTools = DevTools
+local LibAT = LibAT
+local DevTools = LibAT:NewModule('Handler.DevTools') ---@class LibAT.DevToolsInternal : AceAddon, AceEvent-3.0, AceConsole-3.0
+DevTools.description = 'Developer Tools and Debugging Utilities'
 
 -- Logger instance
 ---@type LibAT.Logger.AddonLogger?
 local logger
 
----Initialize the Developer Tools system
-function DevTools:Init()
-	if LibAT.Logger then
-		logger = LibAT.Logger.RegisterAddon('DevTools')
+---Custom OnMouseDown handler for TableAttributeDisplay value buttons
+---@param self Button
+---@param button string Mouse button that was clicked
+local function OnMouseDown(self, button)
+	local text = self.Text:GetText()
+	if button == 'RightButton' then
+		-- Copy to chat edit box
+		local editBox = ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow()
+		if editBox then
+			editBox:SetText(text)
+			editBox:HighlightText()
+			LibAT:Print('Copied to chat: |cff00ccff' .. tostring(text) .. '|r')
+		end
+	elseif button == 'MiddleButton' then
+		-- Get the raw value from the attribute data
+		local parent = self:GetParent()
+		if parent and parent.GetAttributeData then
+			local attrData = parent:GetAttributeData()
+			if attrData and attrData.rawValue then
+				local rawData = attrData.rawValue
+				-- Check if it's a texture or frame
+				if type(rawData) == 'table' and rawData.IsObjectType then
+					if rawData:IsObjectType('Texture') then
+						_G.TEX = rawData
+						LibAT:Print('Set |cff00ff00_G.TEX|r to: |cff00ccff' .. tostring(text) .. '|r')
+					else
+						_G.FRAME = rawData
+						LibAT:Print('Set |cff00ff00_G.FRAME|r to: |cff00ccff' .. tostring(text) .. '|r')
+					end
+				end
+			end
+		end
+	else
+		-- Left-click or other buttons - use default handler
+		if _G.TableAttributeDisplayValueButton_OnMouseDown then
+			_G.TableAttributeDisplayValueButton_OnMouseDown(self)
+		end
+	end
+end
+
+---Update TableAttributeDisplay lines to add click handlers
+local function UpdateTableInspectorLines()
+	if not _G.TableAttributeDisplay then
+		return
 	end
 
-	self:RegisterSlashCommands()
-	self:SetupTableInspectorHooks()
+	local scrollFrame = _G.TableAttributeDisplay.LinesScrollFrame
+	if not scrollFrame or not scrollFrame.LinesContainer then
+		return
+	end
 
-	if logger then
-		logger.info('Developer Tools initialized')
+	-- Get all children from the LinesContainer
+	local children = { scrollFrame.LinesContainer:GetChildren() }
+	for _, child in ipairs(children) do
+		if child.ValueButton and child.ValueButton:GetScript('OnMouseDown') ~= OnMouseDown then
+			child.ValueButton:SetScript('OnMouseDown', OnMouseDown)
+		end
+	end
+end
+
+---Setup hooks for TableAttributeDisplay to add shift/middle/right-click functionality
+local function SetupTableInspectorHooks()
+	-- Wait for TableAttributeDisplay to be available
+	local function SetupHooks()
+		if not _G.TableAttributeDisplay then
+			return
+		end
+
+		-- Hook into TableInspectorMixin.RefreshAllData for /tinspect
+		if _G.TableInspectorMixin and _G.TableInspectorMixin.RefreshAllData then
+			hooksecurefunc(_G.TableInspectorMixin, 'RefreshAllData', function()
+				UpdateTableInspectorLines()
+			end)
+		end
+
+		-- Hook into TableAttributeDisplay.dataProviders[2].RefreshData for fstack ctrl
+		if
+			_G.TableAttributeDisplay.dataProviders
+			and _G.TableAttributeDisplay.dataProviders[2]
+			and _G.TableAttributeDisplay.dataProviders[2].RefreshData
+		then
+			hooksecurefunc(_G.TableAttributeDisplay.dataProviders[2], 'RefreshData', function()
+				UpdateTableInspectorLines()
+			end)
+		end
+
+		if logger then
+			logger.debug('TableAttributeDisplay hooks installed')
+		end
+	end
+
+	-- Try to setup immediately if available, otherwise wait for ADDON_LOADED
+	if _G.TableAttributeDisplay then
+		SetupHooks()
+	else
+		local frame = CreateFrame('Frame')
+		frame:RegisterEvent('ADDON_LOADED')
+		frame:SetScript('OnEvent', function(_, event, addonName)
+			if addonName == 'Blizzard_DebugTools' then
+				SetupHooks()
+				frame:UnregisterEvent('ADDON_LOADED')
+			end
+		end)
 	end
 end
 
 ---Register slash commands for developer tools
-function DevTools:RegisterSlashCommands()
+local function RegisterSlashCommands()
 	-- /devcon - Open developer console
 	SLASH_DEVCON1 = '/devcon'
 	SlashCmdList['DEVCON'] = function()
@@ -241,126 +327,27 @@ function DevTools:RegisterSlashCommands()
 	end
 end
 
----Setup hooks for TableAttributeDisplay to add shift/middle/right-click functionality
-function DevTools:SetupTableInspectorHooks()
-	-- Wait for TableAttributeDisplay to be available
-	local function SetupHooks()
-		if not _G.TableAttributeDisplay then
-			return
-		end
-
-		-- Hook into TableInspectorMixin.RefreshAllData for /tinspect
-		if _G.TableInspectorMixin and _G.TableInspectorMixin.RefreshAllData then
-			hooksecurefunc(_G.TableInspectorMixin, 'RefreshAllData', function()
-				DevTools:UpdateTableInspectorLines()
-			end)
-		end
-
-		-- Hook into TableAttributeDisplay.dataProviders[2].RefreshData for fstack ctrl
-		if
-			_G.TableAttributeDisplay.dataProviders
-			and _G.TableAttributeDisplay.dataProviders[2]
-			and _G.TableAttributeDisplay.dataProviders[2].RefreshData
-		then
-			hooksecurefunc(_G.TableAttributeDisplay.dataProviders[2], 'RefreshData', function()
-				DevTools:UpdateTableInspectorLines()
-			end)
-		end
-
-		if logger then
-			logger.debug('TableAttributeDisplay hooks installed')
-		end
+---Initialize the DevTools module (called by Ace3)
+function DevTools:OnInitialize()
+	-- Register with logger
+	if LibAT.Logger then
+		logger = LibAT.Logger.RegisterAddon('DevTools')
 	end
 
-	-- Try to setup immediately if available, otherwise wait for ADDON_LOADED
-	if _G.TableAttributeDisplay then
-		SetupHooks()
-	else
-		local frame = CreateFrame('Frame')
-		frame:RegisterEvent('ADDON_LOADED')
-		frame:SetScript('OnEvent', function(_, event, addonName)
-			if addonName == 'Blizzard_DebugTools' then
-				SetupHooks()
-				frame:UnregisterEvent('ADDON_LOADED')
-			end
-		end)
+	if logger then
+		logger.debug('DevTools OnInitialize called')
 	end
 end
 
----Custom OnMouseDown handler for TableAttributeDisplay value buttons
----@param self Button
----@param button string Mouse button that was clicked
-local function OnMouseDown(self, button)
-	local text = self.Text:GetText()
-	if button == 'RightButton' then
-		-- Copy to chat edit box
-		local editBox = ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow()
-		if editBox then
-			editBox:SetText(text)
-			editBox:HighlightText()
-			LibAT:Print('Copied to chat: |cff00ccff' .. tostring(text) .. '|r')
-		end
-	elseif button == 'MiddleButton' then
-		-- Get the raw value from the attribute data
-		local parent = self:GetParent()
-		if parent and parent.GetAttributeData then
-			local attrData = parent:GetAttributeData()
-			if attrData and attrData.rawValue then
-				local rawData = attrData.rawValue
-				-- Check if it's a texture or frame
-				if type(rawData) == 'table' and rawData.IsObjectType then
-					if rawData:IsObjectType('Texture') then
-						_G.TEX = rawData
-						LibAT:Print('Set |cff00ff00_G.TEX|r to: |cff00ccff' .. tostring(text) .. '|r')
-					else
-						_G.FRAME = rawData
-						LibAT:Print('Set |cff00ff00_G.FRAME|r to: |cff00ccff' .. tostring(text) .. '|r')
-					end
-				end
-			end
-		end
-	else
-		-- Left-click or other buttons - use default handler
-		if _G.TableAttributeDisplayValueButton_OnMouseDown then
-			_G.TableAttributeDisplayValueButton_OnMouseDown(self)
-		end
-	end
-end
+---Enable the DevTools module (called by Ace3)
+function DevTools:OnEnable()
+	-- Register slash commands
+	RegisterSlashCommands()
 
----Update TableAttributeDisplay lines to add click handlers
-function DevTools:UpdateTableInspectorLines()
-	if not _G.TableAttributeDisplay then
-		return
-	end
+	-- Setup TableAttributeDisplay hooks
+	SetupTableInspectorHooks()
 
-	local scrollFrame = _G.TableAttributeDisplay.LinesScrollFrame
-	if not scrollFrame or not scrollFrame.LinesContainer then
-		return
+	if logger then
+		logger.info('Developer Tools initialized')
 	end
-
-	-- Get all children from the LinesContainer
-	local children = { scrollFrame.LinesContainer:GetChildren() }
-	for _, child in ipairs(children) do
-		if child.ValueButton and child.ValueButton:GetScript('OnMouseDown') ~= OnMouseDown then
-			child.ValueButton:SetScript('OnMouseDown', OnMouseDown)
-		end
-	end
-end
-
--- Initialize when LibAT is ready
-if LibAT.Logger then
-	-- If Logger already exists, init immediately
-	DevTools:Init()
-else
-	-- Otherwise wait for it
-	local frame = CreateFrame('Frame')
-	frame:RegisterEvent('ADDON_LOADED')
-	frame:SetScript('OnEvent', function(_, event, addonName)
-		if addonName == 'Libs-AddonTools' then
-			if LibAT.Logger then
-				DevTools:Init()
-				frame:UnregisterEvent('ADDON_LOADED')
-			end
-		end
-	end)
 end
