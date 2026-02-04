@@ -186,29 +186,27 @@ function LibAT.Options:ToggleOptions(path)
 	-- Try to open in Blizzard Settings panel first (modern API)
 	if Settings and Settings.OpenToCategory then
 		-- Get the stored category ID for this option
-		local categoryID = self.categoryInfo and self.categoryInfo[targetName] and self.categoryInfo[targetName].categoryID or targetName
+		local categoryID = self.categoryInfo and self.categoryInfo[targetName] and self.categoryInfo[targetName].categoryID
 
-		if LibAT.Logger and LibAT.Logger.logger then
-			LibAT.Logger.logger.debug('Attempting to open Blizzard Settings with category ID: ' .. tostring(categoryID))
-		end
-
-		-- Use the modern Settings API
-		local opened = Settings.OpenToCategory(categoryID)
-		if opened then
+		if categoryID then
 			if LibAT.Logger and LibAT.Logger.logger then
-				LibAT.Logger.logger.debug('Successfully opened Blizzard Settings panel')
+				LibAT.Logger.logger.debug('Opening Blizzard Settings with category ID: ' .. tostring(categoryID))
 			end
+
+			-- Settings.OpenToCategory doesn't return a meaningful value, so we just call it and return
+			-- The category ID from AddToBlizOptions is required for this to work
+			Settings.OpenToCategory(categoryID)
 			return
 		else
 			if LibAT.Logger and LibAT.Logger.logger then
-				LibAT.Logger.logger.warning('Settings.OpenToCategory returned false or nil')
+				LibAT.Logger.logger.warning('No category ID found for: ' .. tostring(targetName) .. ', falling back to standalone dialog')
 			end
 		end
 	end
 
-	-- Fallback: Open the AceConfig standalone frame if Blizzard Settings didn't work
+	-- Fallback: Open the AceConfig standalone frame if Blizzard Settings API unavailable or no category ID
 	if LibAT.Logger and LibAT.Logger.logger then
-		LibAT.Logger.logger.debug('Falling back to standalone AceConfig window')
+		LibAT.Logger.logger.debug('Opening standalone AceConfig window for: ' .. tostring(targetName))
 	end
 	self.dialog:Open(targetName)
 end
