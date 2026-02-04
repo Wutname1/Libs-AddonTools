@@ -3,7 +3,7 @@ local LibAT = LibAT
 
 -- Global radio group storage
 ---@class RadioGroupData
----@field buttons Frame[] List of radio buttons in the group
+---@field buttons Frame[] List of radio button containers in the group
 ---@field value any Currently selected value
 ---@field callbacks function[] List of callback functions
 
@@ -14,30 +14,52 @@ local RadioGroups = {}
 -- Radio Button Component
 ----------------------------------------------------------------------------------------------------
 
----Create a radio button
+---@class LibAT.RadioContainer : Frame
+---@field radio CheckButton The actual radio button
+---@field Text FontString The label font string
+---@field groupName string Radio group name
+---@field value any Associated value
+---@field SetValue fun(self: LibAT.RadioContainer, value: any) Set the associated value
+---@field GetValue fun(self: LibAT.RadioContainer): any Get the associated value
+---@field SetChecked fun(self: LibAT.RadioContainer, checked: boolean) Set checked state
+---@field GetChecked fun(self: LibAT.RadioContainer): boolean Get checked state
+---@field SetText fun(self: LibAT.RadioContainer, text: string) Set label text
+---@field GetText fun(self: LibAT.RadioContainer): string Get label text
+---@field HookScript fun(self: LibAT.RadioContainer, event: string, handler: function) Hook script on the radio button
+
+---Create a radio button with a container frame for proper positioning
 ---@param parent Frame Parent frame
 ---@param text string Button label
 ---@param groupName string Radio group name
 ---@param width? number Optional width (default 120)
 ---@param height? number Optional height (default 20)
----@return CheckButton radio Radio button with value management
+---@return LibAT.RadioContainer container Container frame with radio button and label
 function LibAT.UI.CreateRadio(parent, text, groupName, width, height)
 	width = width or 120
 	height = height or 20
 
-	local radio = CreateFrame('CheckButton', nil, parent, 'UIRadioButtonTemplate')
-	radio:SetSize(20, 20) -- Standard radio button size
+	-- Create container frame that holds both radio and label
+	---@type LibAT.RadioContainer
+	local container = CreateFrame('Frame', nil, parent)
+	container:SetSize(width, height)
+
+	-- Create the actual radio button inside container
+	local radio = CreateFrame('CheckButton', nil, container, 'UIRadioButtonTemplate')
+	radio:SetSize(20, 20)
+	radio:SetPoint('LEFT', container, 'LEFT', 0, 0)
+	container.radio = radio
 
 	-- Create label
-	radio.Text = radio:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
-	radio.Text:SetText(text)
-	radio.Text:SetPoint('LEFT', radio, 'RIGHT', 5, 0)
-	radio.Text:SetJustifyH('LEFT')
-	radio.Text:SetWidth(width - 25) -- Account for radio button size
+	local label = container:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
+	label:SetText(text)
+	label:SetPoint('LEFT', radio, 'RIGHT', 5, 0)
+	label:SetPoint('RIGHT', container, 'RIGHT', 0, 0)
+	label:SetJustifyH('LEFT')
+	container.Text = label
 
-	-- Store group reference and value
-	radio.groupName = groupName
-	radio.value = nil
+	-- Store group reference and value on container
+	container.groupName = groupName
+	container.value = nil
 
 	-- Initialize group if needed
 	if not RadioGroups[groupName] then
@@ -48,39 +70,99 @@ function LibAT.UI.CreateRadio(parent, text, groupName, width, height)
 		}
 	end
 
-	-- Add to group
-	table.insert(RadioGroups[groupName].buttons, radio)
+	-- Add container to group (for group value tracking)
+	table.insert(RadioGroups[groupName].buttons, container)
 
-	-- Click handler
+	-- Click handler on the radio button
 	radio:SetScript('OnClick', function(self)
 		-- Uncheck all others in group
 		for _, btn in ipairs(RadioGroups[groupName].buttons) do
-			btn:SetChecked(btn == self)
+			btn.radio:SetChecked(btn == container)
 		end
 
 		-- Update group value
-		RadioGroups[groupName].value = self.value
+		RadioGroups[groupName].value = container.value
 
 		-- Fire callbacks
 		for _, callback in ipairs(RadioGroups[groupName].callbacks) do
-			callback(self.value)
+			callback(container.value)
 		end
 	end)
 
-	-- Add value setter/getter
+	-- Extend click detection to the entire container
+	container:EnableMouse(true)
+	container:SetScript('OnMouseDown', function()
+		radio:Click()
+	end)
+
+	-- Passthrough methods to the container
 	---Set the value associated with this radio button
 	---@param value any The value to associate
-	function radio:SetValue(value)
+	function container:SetValue(value)
 		self.value = value
 	end
 
 	---Get the value associated with this radio button
 	---@return any value The associated value
-	function radio:GetValue()
+	function container:GetValue()
 		return self.value
 	end
 
-	return radio
+	---Set checked state
+	---@param checked boolean Whether the radio is checked
+	function container:SetChecked(checked)
+		self.radio:SetChecked(checked)
+	end
+
+	---Get checked state
+	---@return boolean checked Whether the radio is checked
+	function container:GetChecked()
+		return self.radio:GetChecked()
+	end
+
+	---Set the label text
+	---@param labelText string The text to display
+	function container:SetText(labelText)
+		self.Text:SetText(labelText)
+	end
+
+	---Get the label text
+	---@return string text The label text
+	function container:GetText()
+		return self.Text:GetText()
+	end
+
+	---Hook a script on the radio button
+	---@param event string Script event name
+	---@param handler function Script handler
+	function container:HookScript(event, handler)
+		-- Wrap handler to pass container as self instead of the inner radio
+		self.radio:HookScript(event, function(_, ...)
+			handler(container, ...)
+		end)
+	end
+
+	---Set a script on the radio button
+	---@param event string Script event name
+	---@param handler function|nil Script handler
+	function container:SetScript(event, handler)
+		-- For radio-specific events, delegate to the radio button
+		if event == 'OnClick' or event == 'OnEnter' or event == 'OnLeave' then
+			if handler then
+				-- Wrap handler to pass container as self instead of the inner radio
+				self.radio:SetScript(event, function(_, ...)
+					handler(container, ...)
+				end)
+			else
+				self.radio:SetScript(event, nil)
+			end
+		else
+			-- Call the original Frame SetScript for container events
+			getmetatable(self).__index.SetScript(self, event, handler)
+		end
+	end
+
+	return container
 end
 
 ---Set the selected value of a radio group
@@ -91,12 +173,12 @@ function LibAT.UI.SetRadioGroupValue(groupName, value)
 		return
 	end
 
-	for _, button in ipairs(RadioGroups[groupName].buttons) do
-		if button.value == value then
-			button:SetChecked(true)
+	for _, container in ipairs(RadioGroups[groupName].buttons) do
+		if container.value == value then
+			container.radio:SetChecked(true)
 			RadioGroups[groupName].value = value
 		else
-			button:SetChecked(false)
+			container.radio:SetChecked(false)
 		end
 	end
 end
@@ -133,8 +215,8 @@ function LibAT.UI.ClearRadioGroup(groupName)
 		return
 	end
 
-	for _, button in ipairs(RadioGroups[groupName].buttons) do
-		button:SetChecked(false)
+	for _, container in ipairs(RadioGroups[groupName].buttons) do
+		container.radio:SetChecked(false)
 	end
 
 	RadioGroups[groupName].value = nil

@@ -227,23 +227,143 @@ function LibAT.UI.CreateEditBox(parent, width, height, multiline)
 	return editBox
 end
 
----Create a checkbox using UICheckButtonTemplate
+---@class LibAT.CheckboxContainer : Frame
+---@field checkbox CheckButton The actual checkbox button
+---@field Label FontString The label font string (if label provided)
+---@field SetChecked fun(self: LibAT.CheckboxContainer, checked: boolean) Set checked state
+---@field GetChecked fun(self: LibAT.CheckboxContainer): boolean Get checked state
+---@field SetText fun(self: LibAT.CheckboxContainer, text: string) Set label text
+---@field GetText fun(self: LibAT.CheckboxContainer): string Get label text
+---@field SetEnabled fun(self: LibAT.CheckboxContainer, enabled: boolean) Enable/disable the checkbox
+---@field HookScript fun(self: LibAT.CheckboxContainer, event: string, handler: function) Hook script on the checkbox
+---@field SetScript fun(self: LibAT.CheckboxContainer, event: string, handler: function) Set script on the checkbox
+
+---Create a checkbox with a container frame for proper positioning
 ---@param parent Frame Parent frame
 ---@param label? string Optional label text
----@return Frame checkbox Standard checkbox
-function LibAT.UI.CreateCheckbox(parent, label)
-	local checkbox = CreateFrame('CheckButton', nil, parent, 'UICheckButtonTemplate')
-	checkbox:SetSize(18, 18)
+---@param width? number Optional total width (default auto-calculated or 150)
+---@param height? number Optional height (default 20)
+---@return LibAT.CheckboxContainer container Container frame with checkbox and label
+function LibAT.UI.CreateCheckbox(parent, label, width, height)
+	height = height or 20
 
+	-- Create container frame
+	---@type LibAT.CheckboxContainer
+	local container = CreateFrame('Frame', nil, parent)
+
+	-- Create the actual checkbox inside container
+	local checkbox = CreateFrame('CheckButton', nil, container, 'UICheckButtonTemplate')
+	checkbox:SetSize(18, 18)
+	checkbox:SetPoint('LEFT', container, 'LEFT', 0, 0)
+	container.checkbox = checkbox
+
+	-- Create label if provided
 	if label then
-		local labelText = parent:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
+		local labelText = container:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
 		labelText:SetText(label)
 		labelText:SetPoint('LEFT', checkbox, 'RIGHT', 2, 0)
 		labelText:SetTextColor(1, 1, 1)
-		checkbox.Label = labelText
+		container.Label = labelText
+
+		-- Calculate width if not provided
+		if not width then
+			local labelWidth = labelText:GetStringWidth()
+			width = 18 + 2 + labelWidth + 4 -- checkbox + gap + label + padding
+		end
+
+		-- Set label to fill remaining space
+		labelText:SetPoint('RIGHT', container, 'RIGHT', 0, 0)
+	else
+		width = width or 18
 	end
 
-	return checkbox
+	container:SetSize(width, height)
+
+	-- Extend click detection to the entire container
+	container:EnableMouse(true)
+	container:SetScript('OnMouseDown', function()
+		checkbox:Click()
+	end)
+
+	-- Passthrough methods to the container
+
+	---Set checked state
+	---@param checked boolean Whether the checkbox is checked
+	function container:SetChecked(checked)
+		self.checkbox:SetChecked(checked)
+	end
+
+	---Get checked state
+	---@return boolean checked Whether the checkbox is checked
+	function container:GetChecked()
+		return self.checkbox:GetChecked()
+	end
+
+	---Set the label text
+	---@param text string The text to display
+	function container:SetText(text)
+		if self.Label then
+			self.Label:SetText(text)
+		end
+	end
+
+	---Get the label text
+	---@return string|nil text The label text or nil if no label
+	function container:GetText()
+		if self.Label then
+			return self.Label:GetText()
+		end
+		return nil
+	end
+
+	---Enable or disable the checkbox
+	---@param enabled boolean Whether to enable
+	function container:SetEnabled(enabled)
+		if enabled then
+			self.checkbox:Enable()
+			if self.Label then
+				self.Label:SetTextColor(1, 1, 1)
+			end
+		else
+			self.checkbox:Disable()
+			if self.Label then
+				self.Label:SetTextColor(0.5, 0.5, 0.5)
+			end
+		end
+	end
+
+	---Hook a script on the checkbox
+	---@param event string Script event name
+	---@param handler function Script handler
+	function container:HookScript(event, handler)
+		-- Wrap handler to pass container as self instead of the inner checkbox
+		self.checkbox:HookScript(event, function(_, ...)
+			handler(container, ...)
+		end)
+	end
+
+	---Set a script on the checkbox
+	---@param event string Script event name
+	---@param handler function|nil Script handler
+	function container:SetScript(event, handler)
+		-- For OnClick and similar events, delegate to checkbox
+		-- For frame events, keep on container
+		if event == 'OnClick' or event == 'OnEnter' or event == 'OnLeave' then
+			if handler then
+				-- Wrap handler to pass container as self instead of the inner checkbox
+				self.checkbox:SetScript(event, function(_, ...)
+					handler(container, ...)
+				end)
+			else
+				self.checkbox:SetScript(event, nil)
+			end
+		else
+			-- Call the original Frame SetScript for container events
+			getmetatable(self).__index.SetScript(self, event, handler)
+		end
+	end
+
+	return container
 end
 
 ---Create a dropdown button using WowStyle1FilterDropdownTemplate
