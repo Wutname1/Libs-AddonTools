@@ -1,10 +1,7 @@
+---@class LibAT
+local LibAT = LibAT
 ---@class LibAT.ProfileManager
-local LibAT = _G.LibAT
-if not LibAT then
-	return
-end
-
-local ProfileManager = {}
+local ProfileManager = LibAT.ProfileManager
 
 ----------------------------------------------------------------------------------------------------
 -- Type Definitions
@@ -117,43 +114,31 @@ end
 ---@param addonId string The unique ID of the addon
 ---@param namespace string|nil Optional specific namespace to export
 function ProfileManager:ShowExport(addonId, namespace)
-	LibAT:Print('[ProfileManager] ShowExport called for addonId: ' .. tostring(addonId))
-	if ProfileManagerState.logger then
-		ProfileManagerState.logger.debug('ShowExport called for addonId: ' .. tostring(addonId))
-	else
-		LibAT:Print('[ProfileManager] WARNING: logger is nil!')
-	end
-
 	if not ProfileManagerState.registeredAddons[addonId] then
 		LibAT:Print('|cffff0000Error:|r Addon with ID "' .. addonId .. '" is not registered')
 		return
 	end
 
 	if not ProfileManagerState.window then
-		LibAT:Print('[ProfileManager] Window does not exist, creating...')
 		local success, err = pcall(LibAT.ProfileManager.CreateWindow)
 		if not success then
-			LibAT:Print('[ProfileManager] ERROR: CreateWindow threw error: ' .. tostring(err))
+			if ProfileManagerState.logger then
+				ProfileManagerState.logger.error('CreateWindow threw error: ' .. tostring(err))
+			end
 			return
 		end
 		if not ProfileManagerState.window then
-			LibAT:Print('[ProfileManager] ERROR: Failed to create window!')
 			if ProfileManagerState.logger then
 				ProfileManagerState.logger.error('Failed to create ProfileManager window')
 			end
 			return
 		end
-		LibAT:Print('[ProfileManager] Window created successfully')
 	end
 
 	-- Set mode and active addon
 	ProfileManagerState.window.mode = 'export'
 	ProfileManagerState.window.activeAddonId = addonId
 	ProfileManagerState.window.activeNamespace = namespace
-
-	if ProfileManagerState.logger then
-		ProfileManagerState.logger.debug('Calling UpdateWindowForMode()')
-	end
 
 	-- Build navigation key
 	local navKey = 'Addons.' .. addonId .. '.Export'
@@ -168,8 +153,6 @@ function ProfileManager:ShowExport(addonId, namespace)
 	end
 
 	LibAT.ProfileManager.UpdateWindowForMode()
-
-	LibAT:Print('[ProfileManager] ShowExport completed, window visibility: ' .. tostring(ProfileManagerState.window:IsVisible()))
 end
 
 ---Navigate to a specific addon in import mode
@@ -650,8 +633,3 @@ ProfileManager:Initialize()
 	-- Unregister when addon unloads (optional)
 	LibAT.ProfileManager:UnregisterAddon("spartanui")
 ]]
-
--- Export ProfileManager to LibAT namespace (at end of file after all methods are defined)
-LibAT.ProfileManager = ProfileManager
-
-return ProfileManager

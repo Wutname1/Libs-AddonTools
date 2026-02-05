@@ -1,8 +1,10 @@
 ---@class LibAT
 local LibAT = LibAT
 
--- Initialize ProfileManager namespace if it doesn't exist
-LibAT.ProfileManager = LibAT.ProfileManager or {}
+-- Initialize ProfileManager namespace
+---@class LibAT.ProfileManager
+LibAT.ProfileManager = LibAT:NewModule('Handler.ProfileManager')
+local ProfileManager = LibAT.ProfileManager
 
 -- This file contains all UI-related code for the ProfileManager system
 -- Handles window creation, navigation tree, and mode switching
@@ -12,7 +14,7 @@ local ProfileManagerState
 
 ---Initialize the UI module with shared state from ProfileManager
 ---@param state table The shared ProfileManager state
-function LibAT.ProfileManager.InitUI(state)
+function ProfileManager.InitUI(state)
 	ProfileManagerState = state
 end
 
@@ -21,7 +23,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 ---Rebuild the entire navigation tree with current registered addons
-local function BuildNavigationTree()
+function ProfileManager.BuildNavigationTree()
 	if not ProfileManagerState.window or not ProfileManagerState.window.NavTree then
 		return
 	end
@@ -61,14 +63,11 @@ local function BuildNavigationTree()
 	LibAT.UI.BuildNavigationTree(ProfileManagerState.window.NavTree)
 end
 
--- Make this available to ProfileManager.lua for when addons are registered
-LibAT.ProfileManager.BuildNavigationTree = BuildNavigationTree
-
 ----------------------------------------------------------------------------------------------------
 -- Window Management Functions
 ----------------------------------------------------------------------------------------------------
 
-local function UpdateWindowForMode()
+function ProfileManager.UpdateWindowForMode()
 	if not ProfileManagerState.window then
 		return
 	end
@@ -116,10 +115,7 @@ local function UpdateWindowForMode()
 	ProfileManagerState.window:Show()
 end
 
--- Make UpdateWindowForMode available to ProfileManager.lua
-LibAT.ProfileManager.UpdateWindowForMode = UpdateWindowForMode
-
-local function CreateWindow()
+function ProfileManager.CreateWindow()
 	-- Create base window using LibAT.UI
 	ProfileManagerState.window = LibAT.UI.CreateWindow({
 		name = 'LibAT_ProfileWindow',
@@ -145,7 +141,7 @@ local function CreateWindow()
 	ProfileManagerState.window.SwitchModeButton:SetPoint('RIGHT', ProfileManagerState.window.ControlFrame, 'RIGHT', -10, 0)
 	ProfileManagerState.window.SwitchModeButton:SetScript('OnClick', function()
 		ProfileManagerState.window.mode = ProfileManagerState.window.mode == 'import' and 'export' or 'import'
-		UpdateWindowForMode()
+		ProfileManager.UpdateWindowForMode()
 	end)
 
 	-- Create main content area
@@ -162,7 +158,7 @@ local function CreateWindow()
 	})
 
 	-- Build initial navigation tree
-	BuildNavigationTree()
+	ProfileManager.BuildNavigationTree()
 
 	-- Create right panel for content
 	ProfileManagerState.window.RightPanel = LibAT.UI.CreateRightPanel(ProfileManagerState.window.MainContent, ProfileManagerState.window.LeftPanel)
@@ -201,19 +197,16 @@ local function CreateWindow()
 	ProfileManagerState.window.ImportButton = LibAT.UI.CreateButton(ProfileManagerState.window, 100, 22, 'Import')
 	ProfileManagerState.window.ImportButton:SetPoint('RIGHT', actionButtons[1], 'LEFT', -5, 0)
 	ProfileManagerState.window.ImportButton:SetScript('OnClick', function()
-		LibAT.ProfileManager:DoImport()
+		ProfileManager:DoImport()
 	end)
 
 	-- Export button (shown in export mode)
 	ProfileManagerState.window.ExportButton = LibAT.UI.CreateButton(ProfileManagerState.window, 100, 22, 'Export')
 	ProfileManagerState.window.ExportButton:SetPoint('RIGHT', actionButtons[1], 'LEFT', -5, 0)
 	ProfileManagerState.window.ExportButton:SetScript('OnClick', function()
-		LibAT.ProfileManager:DoExport()
+		ProfileManager:DoExport()
 	end)
 
 	-- Hide window initially
 	ProfileManagerState.window:Hide()
 end
-
--- Make CreateWindow available to ProfileManager.lua
-LibAT.ProfileManager.CreateWindow = CreateWindow
