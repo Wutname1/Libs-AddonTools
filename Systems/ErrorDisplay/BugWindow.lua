@@ -78,8 +78,7 @@ local function updateDisplay(forceRefresh)
 			-- Guard against exceeding the EditBox's max letters (silently blanks the field otherwise)
 			local maxLetters = textArea:GetMaxLetters()
 			if maxLetters > 0 and #allErrors > maxLetters then
-				allErrors = string.sub(allErrors, 1, maxLetters - 200)
-					.. '\n\n[... output truncated: exceeds display limit. Use Previous/Next to view individual errors. ...]'
+				allErrors = string.sub(allErrors, 1, maxLetters - 200) .. '\n\n[... output truncated: exceeds display limit. Use Previous/Next to view individual errors. ...]'
 			end
 
 			textArea:SetText(allErrors)
