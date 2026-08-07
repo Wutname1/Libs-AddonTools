@@ -1,4 +1,4 @@
-## Interface: 120007, 50504, 38001, 20506, 11508
+## Interface: 120100, 120007, 50504, 38001, 20506, 11508
 ## Title: Lib's - Addon Tools
 ## IconTexture: Interface/Addons/LibsAddonTools/Logo-Icon
 ## Version: 1.0.0
