@@ -438,15 +438,15 @@ function LibAT.UI.CreateCheckbox(parent, label, width, height)
 		container._checked = checked
 		if checked then
 			check:Show()
-			SetDesaturation(check, false)
+			check:SetDesaturated(false)
 		else
 			if container.tristate and checked == nil then
 				-- Indeterminate: show desaturated check
 				check:Show()
-				SetDesaturation(check, true)
+				check:SetDesaturated(true)
 			else
 				check:Hide()
-				SetDesaturation(check, false)
+				check:SetDesaturated(false)
 			end
 		end
 	end
@@ -485,7 +485,7 @@ function LibAT.UI.CreateCheckbox(parent, label, width, height)
 			if self.Desc then
 				self.Desc:SetTextColor(1, 1, 1)
 			end
-			SetDesaturation(check, container.tristate and container._checked == nil)
+			check:SetDesaturated(container.tristate and container._checked == nil)
 		else
 			if self.Label then
 				self.Label:SetTextColor(0.5, 0.5, 0.5)
@@ -493,7 +493,7 @@ function LibAT.UI.CreateCheckbox(parent, label, width, height)
 			if self.Desc then
 				self.Desc:SetTextColor(0.5, 0.5, 0.5)
 			end
-			SetDesaturation(check, true)
+			check:SetDesaturated(true)
 		end
 	end
 
